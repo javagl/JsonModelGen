@@ -36,7 +36,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -1046,11 +1045,15 @@ public class ClassGenerator
             JType unboxifiedItemType = itemType.unboxify();
             return unboxifiedItemType.array();
         }
-            
-        if (arraySchema.getUniqueItems() == Boolean.TRUE)
-        {
-            return codeModel.ref(Set.class).narrow(itemType);
-        }
+        
+        // The order of elements must be retained, even
+        // when they are "unique items", so it must ALWAYS 
+        // be a list (and can not be a set)
+        //if (arraySchema.getUniqueItems() == Boolean.TRUE)
+        //{
+        //    return codeModel.ref(Set.class).narrow(itemType);
+        //}
+        
         return codeModel.ref(List.class).narrow(itemType);
     }
 

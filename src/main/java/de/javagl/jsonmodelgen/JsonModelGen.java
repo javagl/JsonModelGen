@@ -64,7 +64,7 @@ public class JsonModelGen
         String s = "https://raw.githubusercontent.com/KhronosGroup/glTF/" + 
             "master/specification/schema/glTF.schema.json";
         URI rootUri = new URI(s);
-        String packageName = "de.javagl.rendering.demo.gltf.impl";
+        String packageName = "de.javagl.jgltf.impl";
         File outputDirectory = new File("./data/output/");
         
         generate(rootUri, packageName, headerCode, outputDirectory);
