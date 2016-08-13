@@ -141,10 +141,9 @@ public class CodeModelInitializers
                     "for this default string: "+initialValueString);
             }
         }
-        // TODO: Create initializer of whatever type this is
-        logger.warning("Initializer of "+type+" is not implemented " + 
-            "for this default string: "+initialValueString);
-        return null;
+        logger.info("Using default initializer of " + type + 
+            "for this default string: " + initialValueString);
+        return JExpr._new(type);
     }
     
     /**

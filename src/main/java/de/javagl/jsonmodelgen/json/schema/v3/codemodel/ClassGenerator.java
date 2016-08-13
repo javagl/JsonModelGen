@@ -599,7 +599,7 @@ public class ClassGenerator
                 if (propertySchema.isRequired() != Boolean.TRUE &&
                     propertySchema.getDefaultString() != null)
                 {
-                    CodeModelMethods.addGetterWithDefault(
+                    CodeModelMethods.addDefaultGetter(
                         definedClass, propertyName, 
                         propertyType, propertySchema);
                 }

@@ -132,16 +132,8 @@ class CodeModelMethods
         JType propertyType, Schema propertySchema)
     {
         JCodeModel codeModel = definedClass.owner();
-        String methodName;
-        if (propertyType.equals(codeModel.BOOLEAN) ||
-            propertyType.unboxify().equals(codeModel.BOOLEAN))
-        {
-            methodName = "is" + StringUtils.capitalize(propertyName);
-        }
-        else
-        {
-            methodName = "get" + StringUtils.capitalize(propertyName);
-        }
+        String methodName = getGetterMethodName(
+            codeModel, propertyName, propertyType);
         JMethod method = definedClass.method(
             JMod.PUBLIC, propertyType, methodName);
         JBlock block = method.body();
@@ -160,35 +152,43 @@ class CodeModelMethods
         return method;
     }
     
+    /**
+     * Returns the "getter" method name for the given property. 
+     * 
+     * @param codeModel The code model
+     * @param propertyName The property name
+     * @param propertyType The property type
+     * @return The getter method name
+     */
+    private static String getGetterMethodName(
+        JCodeModel codeModel, String propertyName, JType propertyType)
+    {
+        if (propertyType.equals(codeModel.BOOLEAN) ||
+            propertyType.unboxify().equals(codeModel.BOOLEAN))
+        {
+            return "is" + StringUtils.capitalize(propertyName);
+        }
+        return "get" + StringUtils.capitalize(propertyName);
+    }
+    
 
     /**
-     * Add a "getter" for the specified property in the given class,
-     * and let the getter return the default value when the property
-     * is <code>null</code>
+     * Add a method for the specified property in the given class,
+     * that returns the default value
      * 
      * @param definedClass The target class
      * @param propertyName The property name (will be the field name)
      * @param propertyType The property type
      * @param propertySchema The property schema
-     * @return The getter method
+     * @return The method
      */
-    static JMethod addGetterWithDefault(
+    static JMethod addDefaultGetter(
         JDefinedClass definedClass, String propertyName, 
         JType propertyType, Schema propertySchema)
     {
         JCodeModel codeModel = definedClass.owner();
-        String methodName;
-        if (propertyType.equals(codeModel.BOOLEAN) ||
-            propertyType.unboxify().equals(codeModel.BOOLEAN))
-        {
-            methodName =
-                "is" + StringUtils.capitalize(propertyName) + "OrDefault";
-        }
-        else
-        {
-            methodName = 
-                "get" + StringUtils.capitalize(propertyName) + "OrDefault";
-        }
+        String methodName =
+            "default" + StringUtils.capitalize(propertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, propertyType, methodName);
         JBlock block = method.body();
@@ -198,27 +198,24 @@ class CodeModelMethods
                 codeModel, propertySchema.getDefaultString(), propertyType);
         if (defaultValueExpression == null)
         {
-            block._return(JExpr._this().ref(propertyName));
+            block._return(JExpr._this().ref("null"));
         }
         else
         {
-            JExpression notNullExpression = 
-                JExpr._this().ref(propertyName).ne(JExpr.ref("null"));
-            JConditional notNullCondition = block._if(notNullExpression);
-            notNullCondition._then()._return(
-                JExpr._this().ref(propertyName));
-            notNullCondition._else()._return(
-                defaultValueExpression);
+            block._return(defaultValueExpression);
         }
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
-        String description = CodeModelDocs.createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema);
+        String getterMethodName = getGetterMethodName(
+            codeModel, propertyName, propertyType);
+        String description = CodeModelDocs.createJavaDoc(Arrays.asList(
+            "Returns the default value of the " + propertyName,
+            "@see #"+getterMethodName));
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
-        sb.append("@return The "+propertyName);
+        sb.append("@return The default " + propertyName);
         docComment.append(sb.toString());
         
         return method;
