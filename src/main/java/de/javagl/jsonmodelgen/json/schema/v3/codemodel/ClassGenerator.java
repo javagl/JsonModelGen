@@ -30,7 +30,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,24 +41,22 @@ import java.util.logging.Logger;
 
 import com.sun.codemodel.ClassType;
 import com.sun.codemodel.CodeWriter;
-import com.sun.codemodel.JBlock;
 import com.sun.codemodel.JClass;
 import com.sun.codemodel.JClassAlreadyExistsException;
 import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JDefinedClass;
 import com.sun.codemodel.JDocComment;
-import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JExpression;
 import com.sun.codemodel.JFieldVar;
-import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
 import com.sun.codemodel.JPackage;
-import com.sun.codemodel.JStatement;
 import com.sun.codemodel.JType;
 import com.sun.codemodel.writer.FileCodeWriter;
 
+import de.javagl.jsonmodelgen.GlTFConfig;
 import de.javagl.jsonmodelgen.json.schema.codemodel.ClassNameGenerator;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModelInitializers;
+import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModels;
 import de.javagl.jsonmodelgen.json.schema.codemodel.StringUtils;
 import de.javagl.jsonmodelgen.json.schema.v3.ArraySchema;
 import de.javagl.jsonmodelgen.json.schema.v3.BooleanSchema;
@@ -93,11 +90,6 @@ public class ClassGenerator
      */
     private static final Level creatingLogLevel = Level.FINE;
     
-    
-    /**
-     * The maximum length for a line in a JavaDoc comment
-     */
-    private static final int MAX_COMMENT_LINE_LENGTH = 70;
     
     /**
      * The {@link ClassNameGenerator} that will generate the names
@@ -467,10 +459,20 @@ public class ClassGenerator
 
         addField(definedClass, "additionalProperties", 
             typedMapType, additionalPropertiesSchema);
-        addSetter(definedClass, "additionalProperties", 
+        CodeModelMethods.addSetter(definedClass, "additionalProperties", 
             typedMapType, additionalPropertiesSchema);
-        addGetter(definedClass, "additionalProperties", 
+        CodeModelMethods.addGetter(definedClass, "additionalProperties", 
             typedMapType, additionalPropertiesSchema);
+        
+        if (GlTFConfig.CREATE_ADDERS_AND_REMOVERS)
+        {
+            CodeModelMethods.addAdderForMap(
+                definedClass, "additionalProperties", 
+                typedMapType, additionalPropertiesSchema);
+            CodeModelMethods.addRemoverForMap(
+                definedClass, "additionalProperties", 
+                typedMapType, additionalPropertiesSchema);
+        }
 
     }
 
@@ -565,8 +567,43 @@ public class ClassGenerator
             JType propertyType = typeResolver.apply(propertySchema);
 
             addField(definedClass, propertyName, propertyType, propertySchema);
-            addSetter(definedClass, propertyName, propertyType, propertySchema);
-            addGetter(definedClass, propertyName, propertyType, propertySchema);
+            CodeModelMethods.addSetter(
+                definedClass, propertyName, propertyType, propertySchema);
+            CodeModelMethods.addGetter(
+                definedClass, propertyName, propertyType, propertySchema);
+            
+            if (GlTFConfig.CREATE_ADDERS_AND_REMOVERS)
+            {
+                if (CodeModels.isSubtypeOf(propertyType, Map.class))
+                {
+                    CodeModelMethods.addAdderForMap(
+                        definedClass, propertyName, 
+                        propertyType, propertySchema);
+                    CodeModelMethods.addRemoverForMap(
+                        definedClass, propertyName, 
+                        propertyType, propertySchema);
+                }
+                else if (CodeModels.isSubtypeOf(propertyType, List.class))
+                {
+                    CodeModelMethods.addAdderForList(
+                        definedClass, propertyName, 
+                        propertyType, propertySchema);
+                    CodeModelMethods.addRemoverForList(
+                        definedClass, propertyName, 
+                        propertyType, propertySchema);
+                }
+            }
+
+            if (GlTFConfig.CREATE_GETTERS_WITH_DEFAULT)
+            {
+                if (propertySchema.isRequired() != Boolean.TRUE &&
+                    propertySchema.getDefaultString() != null)
+                {
+                    CodeModelMethods.addGetterWithDefault(
+                        definedClass, propertyName, 
+                        propertyType, propertySchema);
+                }
+            }
         }
     }
     
@@ -604,353 +641,17 @@ public class ClassGenerator
         
         JDocComment docComment = fieldVar.javadoc();
         StringBuilder sb = new StringBuilder();
-        String description = createJavaDocDescription(
+        String description = CodeModelDocs.createJavaDocDescription(
             definedClass.name(), propertyName, propertySchema);
-        sb.append(StringUtils.format(description, MAX_COMMENT_LINE_LENGTH));
+        sb.append(StringUtils.format(description, 
+            CodeModelDocs.MAX_COMMENT_LINE_LENGTH));
         docComment.append(sb.toString());
         
     }
 
-    /**
-     * Add a "setter" for the specified property in the given class
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @return The setter method
-     */
-    private JMethod addSetter(JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
-    {
-        String methodName = "set" + StringUtils.capitalize(propertyName);
-        JMethod method = definedClass.method(
-            JMod.PUBLIC, definedClass.owner().VOID, methodName);
-        method.param(propertyType, propertyName);
-        JBlock block = method.body();
-
-        JBlock nullHandlingStatements = new JBlock();
-        CodeModelValidations.createNullHandlingStatements(
-            nullHandlingStatements, codeModel, 
-            propertyName, propertyType, propertySchema);
-        addAllStatements(block, nullHandlingStatements);
-        
-        JBlock validationStatements = new JBlock();
-        CodeModelValidations.createValidationStatements(
-            validationStatements, codeModel, 
-            propertyName, propertyType, propertySchema);
-        addAllStatements(block, validationStatements);
-
-        block.assign(
-            JExpr._this().ref(propertyName), 
-            JExpr.ref(propertyName));
-
-        
-        JDocComment docComment = method.javadoc();
-        StringBuilder sb = new StringBuilder();
-        String description = createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema);
-        sb.append(
-            StringUtils.format(description, MAX_COMMENT_LINE_LENGTH)+"\n");
-        sb.append("\n");
-        sb.append("@param "+propertyName+" The "+propertyName+" to set");
-        if (propertySchema.isRequired() == Boolean.TRUE)
-        {
-            sb.append("\n");
-            sb.append("@throws NullPointerException If the given value " + 
-                "is <code>null</code>");
-        }
-        if (!validationStatements.getContents().isEmpty())
-        {
-            sb.append("\n");
-            sb.append("@throws IllegalArgumentException If the given value " + 
-                "does not meet\nthe given constraints");
-        }
-        docComment.append(sb.toString());
-        
-        return method;
-    }
-    
-    /**
-     * Add a "getter" for the specified property in the given class
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @return The getter method
-     */
-    private JMethod addGetter(JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
-    {
-        JCodeModel codeModel = definedClass.owner();
-        String methodName;
-        if (propertyType.equals(codeModel.BOOLEAN) ||
-            propertyType.unboxify().equals(codeModel.BOOLEAN))
-        {
-            methodName = "is" + StringUtils.capitalize(propertyName);
-        }
-        else
-        {
-            methodName = "get" + StringUtils.capitalize(propertyName);
-        }
-        JMethod method = definedClass.method(
-            JMod.PUBLIC, propertyType, methodName);
-        JBlock block = method.body();
-        block._return(JExpr._this().ref(propertyName));
-        
-        JDocComment docComment = method.javadoc();
-        StringBuilder sb = new StringBuilder();
-        String description = createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema);
-        sb.append(
-            StringUtils.format(description, MAX_COMMENT_LINE_LENGTH)+"\n");
-        sb.append("\n");
-        sb.append("@return The "+propertyName);
-        docComment.append(sb.toString());
-        
-        return method;
-    }
     
     
-    /**
-     * Add all JStatement instances from the given source block to the
-     * given target block
-     * 
-     * @param target The target
-     * @param source The source
-     */
-    private static void addAllStatements(JBlock target, JBlock source)
-    {
-        for (Object object : source.getContents())
-        {
-            if (object instanceof JStatement)
-            {
-                JStatement statement = (JStatement)object;
-                target.add(statement);
-            }
-        }
-    }
     
-    /**
-     * Create the JavaDoc-description for the specified property in the
-     * given class
-     * 
-     * @param className The target class
-     * @param propertyName The property name
-     * @param propertySchema The property schema
-     * @return The string
-     */
-    private static String createJavaDocDescription(
-        String className, String propertyName, Schema propertySchema)
-    {
-        return createJavaDoc(createDescriptionLines(
-            className, propertyName, propertySchema));
-    }
-    
-    /**
-     * Create a JavaDoc description from the given lines. The result will
-     * be a single string, where each line is separated by a HTML
-     * line break: <code>&lt;br></code>
-     *  
-     * @param lines The input lines
-     * @return The result
-     */
-    private static String createJavaDoc(List<String> lines)
-    {
-        StringBuilder sb = new StringBuilder();
-        for (int i=0; i<lines.size(); i++)
-        {
-            if (i > 0)
-            {
-                sb.append("<br>\n");
-            }
-            sb.append(lines.get(i));
-        }
-        return sb.toString();
-    }
-    
-    /**
-     * Create a list of strings, each being one line of the description of
-     * the specified property for the given class. These lines will summarize
-     * the constraints that are derived from the given {@link Schema}, e.g.
-     * the valid values for the fields and other constraints.
-     * 
-     * @param className The target class
-     * @param propertyName The property name
-     * @param propertySchema The property schema
-     * @return The strings
-     */
-    private static List<String> createDescriptionLines(
-        String className, String propertyName, Schema propertySchema)
-    {
-        List<String> descriptionLines = new ArrayList<String>();
-        
-        descriptionLines.addAll(createBasicDescription(
-            className, propertyName, propertySchema));
-        
-        if (propertySchema.isNumber())
-        {
-            NumberSchema numberPropertySchema = propertySchema.asNumber();
-            descriptionLines.addAll(
-                createNumberPropertyDescription(numberPropertySchema));
-        }
-        if (propertySchema.isArray())
-        {
-            ArraySchema arrayPropertySchema = propertySchema.asArray();
-            descriptionLines.addAll(
-                createArrayPropertyDescription(arrayPropertySchema));
-        }
-        return descriptionLines;
-    }
-
-    /**
-     * Creates a list of strings containing the basic description of the 
-     * given property in the specified class.<br>
-     * <br>
-     * These lines will include information about the property name, the
-     * owning class, whether the property is "required" or "optional", 
-     * possible default values, and (for enum typed properties), the
-     * set of valid values. 
-     * 
-     * @param className The target class
-     * @param propertyName The property name
-     * @param propertySchema The property schema
-     * @return The strings
-     */
-    private static List<String> createBasicDescription(
-        String className, String propertyName, Schema propertySchema)
-    {
-        List<String> descriptionLines = new ArrayList<String>();
-        String propertyDescription = propertySchema.getDescription();
-        if (propertyDescription == null)
-        {
-            propertyDescription = "The "+propertyName+" of this "+className;
-        }
-        if (propertySchema.isRequired() == Boolean.TRUE)
-        {
-            propertyDescription += " (required)";
-        }
-        else
-        {
-            propertyDescription += " (optional)";
-        }
-        descriptionLines.add(propertyDescription);
-        
-        if (propertySchema.getDefaultString() != null)
-        {
-            descriptionLines.add("Default: " + 
-                propertySchema.getDefaultString());
-        }
-        if (propertySchema.getEnumStrings() != null)
-        {
-            descriptionLines.add("Valid values: " + 
-                propertySchema.getEnumStrings());
-        }
-        
-        return descriptionLines;
-    }
-    
-    /**
-     * Creates a list of strings containing the description of the 
-     * given {@link NumberSchema}<br>
-     * <br>
-     * These lines will include information about the possible minimum
-     * and maximum values, and whether the minimum and maximum values
-     * are inclusive or exclusive.
-     * 
-     * @param numberPropertySchema The {@link NumberSchema}
-     * @return The strings
-     */
-    private static List<String> createNumberPropertyDescription(
-        NumberSchema numberPropertySchema)
-    {
-        List<String> descriptionLines = new ArrayList<String>();
-        if (numberPropertySchema.getMinimum() != null)
-        {
-            String minimumDescription = 
-                "Minimum: " + numberPropertySchema.getMinimum();
-            if (numberPropertySchema.isExclusiveMinimum() == Boolean.TRUE)
-            {
-                minimumDescription += " (exclusive)";
-            }
-            else
-            {
-                minimumDescription += " (inclusive)";
-            }
-            descriptionLines.add(minimumDescription);
-        }
-        if (numberPropertySchema.getMaximum() != null)
-        {
-            String maximumDescription = "Maximum: " + 
-                numberPropertySchema.getMaximum();
-            if (numberPropertySchema.isExclusiveMaximum() == Boolean.TRUE)
-            {
-                maximumDescription += " (exclusive)";
-            }
-            else
-            {
-                maximumDescription += " (inclusive)";
-            }
-            descriptionLines.add(maximumDescription);
-        }
-        return descriptionLines; 
-    }
-    
-    /**
-     * Creates a list of strings containing the description of the
-     * given {@link ArraySchema}<br>
-     * <br>
-     * These lines will include information about the minimum and maximum 
-     * number of items, as well as descriptions of the types of the
-     * array elements.
-     * 
-     * @param arrayPropertySchema The {@link ArraySchema}
-     * @return The strings
-     */
-    private static List<String> createArrayPropertyDescription(
-        ArraySchema arrayPropertySchema)
-    {
-        List<String> descriptionLines = new ArrayList<String>();
-        
-        Integer minItems = arrayPropertySchema.getMinItems();
-        Integer maxItems = arrayPropertySchema.getMaxItems();
-        if (minItems != null && maxItems != null &&
-            minItems.equals(maxItems))
-        {
-            descriptionLines.add("Number of items: " + minItems);
-        }
-        else
-        {
-            if (minItems != null)
-            {
-                descriptionLines.add("Minimum number of items: " + minItems);
-            }
-            if (maxItems != null)
-            {
-                descriptionLines.add("Maximum number of items: " + maxItems);
-            }
-        }
-        Collection<Schema> itemSchemas = arrayPropertySchema.getItems();
-        if (itemSchemas.size() != 1)
-        {
-            logger.warning("Found "+itemSchemas.size()+
-                " item schemas. Only 1 is supported.");
-        }
-        if (!itemSchemas.isEmpty())
-        {
-            descriptionLines.add("Array elements:");
-            Schema itemSchema = itemSchemas.iterator().next();
-            List<String> itemDescriptionLines = 
-                createDescriptionLines(
-                    "array", "elements", itemSchema);
-            for (String itemDescription : itemDescriptionLines)
-            {
-                descriptionLines.add("&nbsp;&nbsp;"+itemDescription);
-            }
-        }
-        return descriptionLines;
-    }
 
 
     /**
@@ -1018,7 +719,7 @@ public class ClassGenerator
         sb.append("Auto-generated for "+
             StringUtils.extractSchemaName(canonicalUri));
         docComment.append(StringUtils.format(sb.toString(), 
-            MAX_COMMENT_LINE_LENGTH));
+            CodeModelDocs.MAX_COMMENT_LINE_LENGTH));
         return definedClass;
     }
     
@@ -1057,5 +758,4 @@ public class ClassGenerator
         return codeModel.ref(List.class).narrow(itemType);
     }
 
-    
 }

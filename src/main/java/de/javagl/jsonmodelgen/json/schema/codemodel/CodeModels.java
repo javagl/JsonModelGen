@@ -29,9 +29,12 @@ package de.javagl.jsonmodelgen.json.schema.codemodel;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
+import com.sun.codemodel.JClass;
+import com.sun.codemodel.JCodeModel;
 import com.sun.codemodel.JExpr;
 import com.sun.codemodel.JExpression;
 import com.sun.codemodel.JPrimitiveType;
+import com.sun.codemodel.JType;
 
 /**
  * Utility methods to build parts of a code model 
@@ -172,7 +175,25 @@ public class CodeModels
             "Unhandled number type: "+number.getClass());
     }
     
-
+    /**
+     * Returns whether the given type is a subtype of the given supertype
+     * 
+     * @param type The type
+     * @param supertype The supertype
+     * @return Whether the type is a subtype
+     */
+    public static boolean isSubtypeOf(JType type, Class<?> supertype)
+    {
+        JCodeModel codeModel = type.owner();
+        if (type instanceof JClass)
+        {
+            JClass c = ((JClass)type).erasure();
+            JClass sc = codeModel.ref(supertype);
+            return sc.isAssignableFrom(c);
+        }
+        return false;
+    }
+    
     /**
      * Private constructor to prevent instantiation
      */

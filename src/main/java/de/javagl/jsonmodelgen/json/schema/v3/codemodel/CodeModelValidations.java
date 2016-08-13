@@ -55,6 +55,33 @@ class CodeModelValidations
     private static final Logger logger = 
         Logger.getLogger(CodeModelValidations.class.getName());
 
+    /**
+     * Insert a statement into the given block that checks whether a variable
+     * with the given name is <code>null</code>, and throws a 
+     * {@link NullPointerException} in this case.
+     * <pre><code>
+     * if (name == null)
+     * {
+     *     throw new NullPointerException(...);
+     * }
+     * </code></pre>
+     * 
+     * @param block The block
+     * @param codeModel The code model
+     * @param name The variable name
+     */
+    static void createNullCheckStatement(
+        JBlock block, JCodeModel codeModel, String name)
+    {
+        JExpression conditionExpression = 
+            JExpr.ref(name).eq(JExpr.ref("null"));;
+        JExpression exceptionMessageExpression = 
+            JExpr.lit("The " + name + " may not be null");
+        JExpression exceptionExpression = 
+            JExpr._new(codeModel._ref(NullPointerException.class)).
+                arg(exceptionMessageExpression);
+        block._if(conditionExpression)._then()._throw(exceptionExpression);
+    }
     
     /**
      * Insert statements into the given block (of a setter method) that 
