@@ -124,6 +124,20 @@ public class ClassGenerator
         @Override
         public JType createArrayType(ArraySchema schema)
         {
+            // TODO This is "pragmatic" at least, but in fact, a hack:
+            // The accessor.min/max are translated to Number[] arrays
+            // here, to make sure that they can also contain integer
+            // values without losing precision, and still allow them
+            // to be written without trailing ".0" decimals when they
+            // are serialized to JSON. 
+            // See https://github.com/KhronosGroup/glTF-Validator/issues/8
+            logger.warning("Using fixed translation to Number[] for accessor min/max");
+            
+            if (schema.getId().endsWith("accessor.schema.json#/properties/min") ||
+                schema.getId().endsWith("accessor.schema.json#/properties/max"))
+            {
+                return codeModel.ref(Number.class).array(); 
+            }
             return doCreateArrayType(schema);
         }
 
