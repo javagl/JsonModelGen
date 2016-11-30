@@ -33,8 +33,8 @@ import java.util.Locale;
 import java.util.logging.Logger;
 
 import de.javagl.jsonmodelgen.json.NodeRepository;
-import de.javagl.jsonmodelgen.json.schema.v3.SchemaGenerator;
-import de.javagl.jsonmodelgen.json.schema.v3.codemodel.ClassGenerator;
+import de.javagl.jsonmodelgen.json.schema.v4.SchemaGenerator;
+import de.javagl.jsonmodelgen.json.schema.v4.codemodel.ClassGenerator;
 
 /**
  * Main class of the JSON model generator
@@ -62,7 +62,7 @@ public class JsonModelGen
         //String s = "file:/C:/Develop/JsonModelGen/JsonModelGen/data/" + 
         //    "input/gltf/glTF.schema.json";
         String s = "https://raw.githubusercontent.com/KhronosGroup/glTF/" + 
-            "master/specification/schema/glTF.schema.json";
+            "master/specification/1.0/schema/glTF.schema.json";
         URI rootUri = new URI(s);
         String packageName = "de.javagl.jgltf.impl";
         File outputDirectory = new File("./data/output/");

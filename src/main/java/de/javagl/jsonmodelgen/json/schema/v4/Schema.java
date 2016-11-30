@@ -1,8 +1,8 @@
 /*
- * JsonModelGen - Model Generation from JSON Schema 
+ * JsonModelGen - Model Generation from JSON Schema
  *
  * Copyright (c) 2015-2016 Marco Hutter - http://www.javagl.de
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,10 +11,10 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -24,34 +24,28 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package de.javagl.jsonmodelgen.json.schema.v3;
+package de.javagl.jsonmodelgen.json.schema.v4;
 
+import java.util.List;
 import java.util.Set;
 
 /**
- * A class representing a JSON schema, version 03, according to the definitions 
- * at <a href="https://tools.ietf.org/html/draft-zyp-json-schema-03">
- * https://tools.ietf.org/html/draft-zyp-json-schema-03</a>
+ * A class representing a JSON schema, version 04, according to the definitions
+ * https://tools.ietf.org/html/draft-zyp-json-schema-04
+ * https://tools.ietf.org/html/draft-fge-json-schema-validation-00 and
  */
 public class Schema
 {
     /**
-     * TODO: Link descriptions are not implemented yet.<br>
-     * <br> 
-     * See https://tools.ietf.org/html/draft-zyp-json-schema-03#section-6.1
-     */
-    private enum LinkDescription{}
-    
-    /**
      * See {@link #getId()}
      */
     private String id;
-    
+
     /**
      * See {@link #getSchemaString()}
      */
     private String schemaString;
-    
+
     /**
      * See {@link #getTitle()}
      */
@@ -61,7 +55,7 @@ public class Schema
      * See {@link #getDescription()}
      */
     private String description;
-    
+
     /**
      * See {@link #getDefaultString()}
      */
@@ -71,41 +65,45 @@ public class Schema
      * See {@link #getTypeStrings()}
      */
     private Set<String> typeStrings;
-    
+
     /**
      * See {@link #getEnumStrings()}
      */
     private Set<String> enumStrings;
-    
+
     /**
-     * See {@link #getExtendsSchema()}
+     * See {@link #getAllOf()}
      */
-    private Schema extendsSchema;
-    
+    private List<Schema> allOf;
+
     /**
-     * See {@link #getDisallowStrings()}
+     * See {@link #getAnyOf()}
      */
-    private Set<String> disallowStrings;
-    
+    private List<Schema> anyOf;
+
     /**
-     * See {@link #getLinks()}
+     * See {@link #getOneOf()}
      */
-    private Set<LinkDescription> links;
+    private List<Schema> oneOf;
+
+    /**
+     * See {@link #getNot()}
+     */
+    private Schema not;
+
+    /**
+     * See {@link #getDefinitions()}
+     */
+    private List<Schema> definitions;
     
     /**
      * See {@link #getFormat()}
      */
     private String format;
-    
-    /**
-     * See {@link #isRequired()}
-     */
-    private Boolean required;
-    
-    
+
     /**
      * Returns whether this schema is a {@link NumberSchema}
-     * 
+     *
      * @return Whether this schema is a {@link NumberSchema}
      */
     public final boolean isNumber()
@@ -115,7 +113,7 @@ public class Schema
 
     /**
      * Returns whether this schema is an {@link IntegerSchema}
-     * 
+     *
      * @return Whether this schema is an {@link IntegerSchema}
      */
     public final boolean isInteger()
@@ -125,7 +123,7 @@ public class Schema
 
     /**
      * Returns whether this schema is a {@link StringSchema}
-     * 
+     *
      * @return Whether this schema is a {@link StringSchema}
      */
     public final boolean isString()
@@ -135,7 +133,7 @@ public class Schema
 
     /**
      * Returns whether this schema is an {@link ArraySchema}
-     * 
+     *
      * @return Whether this schema is an {@link ArraySchema}
      */
     public final boolean isArray()
@@ -145,7 +143,7 @@ public class Schema
 
     /**
      * Returns whether this schema is an {@link ObjectSchema}
-     * 
+     *
      * @return Whether this schema is an {@link ObjectSchema}
      */
     public final boolean isObject()
@@ -155,29 +153,29 @@ public class Schema
 
     /**
      * Returns whether this schema is an {@link BooleanSchema}
-     * 
+     *
      * @return Whether this schema is an {@link BooleanSchema}
      */
     public final boolean isBoolean()
     {
         return asBoolean() != null;
     }
-    
+
     /**
      * Returns this schema as a {@link NumberSchema}, or <code>null</code>
      * if this schema has a different type.
-     * 
+     *
      * @return This schema with the appropriate type, or <code>null</code>
      */
     public NumberSchema asNumber()
     {
         return null;
     }
-    
+
     /**
      * Returns this schema as an {@link IntegerSchema}, or <code>null</code>
      * if this schema has a different type.
-     * 
+     *
      * @return This schema with the appropriate type, or <code>null</code>
      */
     public IntegerSchema asInteger()
@@ -188,18 +186,18 @@ public class Schema
     /**
      * Returns this schema as a {@link StringSchema}, or <code>null</code>
      * if this schema has a different type.
-     * 
+     *
      * @return This schema with the appropriate type, or <code>null</code>
      */
     public StringSchema asString()
     {
         return null;
     }
-    
+
     /**
      * Returns this schema as an {@link ArraySchema}, or <code>null</code>
      * if this schema has a different type.
-     * 
+     *
      * @return This schema with the appropriate type, or <code>null</code>
      */
     public ArraySchema asArray()
@@ -210,7 +208,7 @@ public class Schema
     /**
      * Returns this schema as an {@link ObjectSchema}, or <code>null</code>
      * if this schema has a different type.
-     * 
+     *
      * @return This schema with the appropriate type, or <code>null</code>
      */
     public ObjectSchema asObject()
@@ -221,7 +219,7 @@ public class Schema
     /**
      * Returns this schema as a {@link BooleanSchema}, or <code>null</code>
      * if this schema has a different type.
-     * 
+     *
      * @return This schema with the appropriate type, or <code>null</code>
      */
     public BooleanSchema asBoolean()
@@ -229,13 +227,15 @@ public class Schema
         return null;
     }
 
-    
+
     /**
-     * This attribute defines a URI of a JSON Schema that is the schema of
-     * the current schema. (The value of the "$schema" property)<br>
+     * The "$schema" keyword is both used as a JSON Schema version
+     * identifier and the location of a resource which is itself a JSON
+     * Schema, which describes any schema written for this particular 
+     * version. (The value of the "$schema" property)<br>
      * <br>
-     * http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.29
-     * 
+     * https://tools.ietf.org/html/draft-zyp-json-schema-04#section-6
+     *
      * @return The value
      */
     public String getSchemaString()
@@ -245,20 +245,20 @@ public class Schema
 
     /**
      * See {@link #getSchemaString()}
-     * 
+     *
      * @param schemaString The value
      */
     public void setSchemaString(String schemaString)
     {
         this.schemaString = schemaString;
     }
-    
+
     /**
      * This attribute is a string that provides a short description of the
      * instance property.<br>
      * <br>
-     * http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.21
-     * 
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-6.1
+     *
      * @return The value
      */
     public String getTitle()
@@ -268,7 +268,7 @@ public class Schema
 
     /**
      * See {@link #getTitle()}
-     * 
+     *
      * @param title The value
      */
     public void setTitle(String title)
@@ -280,8 +280,8 @@ public class Schema
      * This attribute is a string that provides a full description of the of
      * purpose the instance property.<br>
      * <br>
-     * http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.22
-     * 
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-6.1
+     *
      * @return The value
      */
     public String getDescription()
@@ -291,7 +291,7 @@ public class Schema
 
     /**
      * See {@link #getDescription()}
-     * 
+     *
      * @param description The value
      */
     public void setDescription(String description)
@@ -300,11 +300,11 @@ public class Schema
     }
 
     /**
-     * This attribute defines the default value of the instance when the
-     * instance is undefined.<br>
+     * This keyword can be used to supply a default JSON value associated
+     * with a particular schema. <br>
      * <br>
-     * http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.20
-     * 
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-6.2
+     *
      * @return The value
      */
     public String getDefaultString()
@@ -314,7 +314,7 @@ public class Schema
 
     /**
      * See {@link #getDefaultString()}
-     * 
+     *
      * @param defaultString The value
      */
     public void setDefaultString(String defaultString)
@@ -326,13 +326,13 @@ public class Schema
      * This attribute defines what the primitive type or the schema of the
      * instance MUST be in order to validate.<br>
      * <br>
-     * http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.1<br>
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.2<br>
      * <br>
-     * The value of this keyword MUST be either a string or an array. If it 
+     * The value of this keyword MUST be either a string or an array. If it
      * is an array, elements of the array MUST be strings and MUST be unique.
-     * String values MUST be one of the seven primitive types defined by the 
-     * core specification. 
-     * 
+     * String values MUST be one of the seven primitive types defined by the
+     * core specification.
+     *
      * @return The value
      */
     public Set<String> getTypeStrings()
@@ -342,7 +342,7 @@ public class Schema
 
     /**
      * See {@link #getTypeStrings()}
-     * 
+     *
      * @param typeStrings The value
      */
     public void setTypeStrings(Set<String> typeStrings)
@@ -350,145 +350,192 @@ public class Schema
         this.typeStrings = typeStrings;
     }
 
-    
+
     /**
      * This provides an enumeration of all possible values that are valid
      * for the instance property.<br>
-     * <br>  
-     * http://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.19<br>
      * <br>
-     * The value of this keyword MUST be an array. This array MUST have at 
-     * least one element. Elements in the array MUST be unique. Elements 
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.1<br>
+     * <br>
+     * The value of this keyword MUST be an array. This array MUST have at
+     * least one element. Elements in the array MUST be unique. Elements
      * in the array MAY be of any type, including null.
-     *  
+     *
      * @return The value
      */
     public Set<String> getEnumStrings()
     {
         return enumStrings;
     }
-    
+
     /**
      * See {@link #getEnumStrings()}
-     * 
+     *
      * @param enumStrings The value
      */
     public void setEnumStrings(Set<String> enumStrings)
     {
         this.enumStrings = enumStrings;
     }
-    
+
     /**
-     * The value of this property MUST be another schema which will provide
-     * a base schema which the current schema will inherit from.<br>
+     * An instance validates successfully against this keyword if it
+     * validates successfully against all schemas defined by this keyword's
+     * value.
      * <br>
-     * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.26
-     * 
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.3
+     *
      * @return The value
      */
-    public Schema getExtendsSchema()
+    public List<Schema> getAllOf()
     {
-        return extendsSchema;
+        return allOf;
     }
-    
+
     /**
-     * See {@link #setExtendsSchema(Schema)} 
-     * 
-     * @param extendsSchema The value
+     * See {@link #getAllOf()}
+     *
+     * @param allOf The value
      */
-    public void setExtendsSchema(Schema extendsSchema)
+    public void setAllOf(List<Schema> allOf)
     {
-        this.extendsSchema = extendsSchema;
+        this.allOf = allOf;
     }
     
     /**
-     * This attribute takes the same values as the "type" attribute, however
-     * if the instance matches the type or if this value is an array and the
-     * instance matches any type or schema in the array, then this instance
-     * is not valid.<br>
+     * An instance validates successfully against this keyword if it
+     * validates successfully against at least one schema defined by this 
+     * keyword's value.
      * <br>
-     * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.25
-     * 
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.4
+     *
      * @return The value
      */
-    public Set<String> getDisallowStrings()
+    public List<Schema> getAnyOf()
     {
-        return disallowStrings;
+        return anyOf;
     }
-    
+
     /**
-     * See {@link #getDisallowStrings()}
-     * 
-     * @param disallow The value
+     * See {@link #getAnyOf()}
+     *
+     * @param anyOf The value
      */
-    public void setDisallowStrings(Set<String> disallow)
+    public void setAnyOf(List<Schema> anyOf)
     {
-        this.disallowStrings = disallow;
+        this.anyOf = anyOf;
+    }
+
+    /**
+     * An instance validates successfully against this keyword if it
+     * validates successfully against exactly one schema defined by this
+     * keyword's value.
+     * <br>
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.5
+     *
+     * @return The value
+     */
+    public List<Schema> getOneOf()
+    {
+        return oneOf;
+    }
+
+    /**
+     * See {@link #getOneOf()}
+     *
+     * @param oneOf The value
+     */
+    public void setOneOf(List<Schema> oneOf)
+    {
+        this.oneOf = oneOf;
+    }
+
+    /**
+     * An instance is valid against this keyword if it fails to validate
+     * successfully against the schema defined by this keyword.
+     * <br>
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.6
+     *
+     * @return The value
+     */
+    public Schema getNot()
+    {
+        return not;
+    }
+
+    /**
+     * See {@link #getNot()}
+     *
+     * @param not The value
+     */
+    public void setNot(Schema not)
+    {
+        this.not = not;
     }
     
     /**
-     * This attribute defines the current URI of this schema (this attribute
-     * is effectively a "self" link).<br>
+     * This keyword plays no role in validation per se.  Its role is to
+     * provide a standardized location for schema authors to inline JSON
+     * Schemas into a more general schema.
      * <br>
-     * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.27
-     * 
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-5.5.7
+     *
+     * @return The value
+     */
+    public List<Schema> getDefinitions()
+    {
+        return definitions;
+    }
+
+    /**
+     * See {@link #getDefinitions()}
+     *
+     * @param definitions The value
+     */
+    public void setDefinitions(List<Schema> definitions)
+    {
+        this.definitions = definitions;
+    }
+    
+    /**
+     * This attribute defines the current URI of this schema.<br>
+     * <br>
+     * https://tools.ietf.org/html/draft-zyp-json-schema-04#section-7.2
+     *
      * @return The value
      */
     public String getId()
     {
         return id;
     }
-    
+
     /**
      * See {@link #getId()}
-     *  
+     *
      * @param id The value
      */
     public void setId(String id)
     {
         this.id = id;
     }
-    
+
     /**
-     * The value of the links property MUST be an array, where each item in
-     * the array is a link description object which describes the link
-     * relations of the instances.<br>
+     * The "format" keyword is defined to allow interoperable semantic 
+     * validation for a fixed subset of values which are accurately described
+     * by authoritative resources
      * <br>
-     * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-6.1
-     * 
-     * @return The value
-     */
-    public Set<LinkDescription> getLinks()
-    {
-        return links;
-    }
-    
-    /**
-     * See {@link #getLinks()}
-     * 
-     * @param links The value
-     */
-    public void setLinks(Set<LinkDescription> links)
-    {
-        this.links = links;
-    }
-    
-    /**
-     * This property defines the type of data, content type, or microformat
-     * to be expected in the instance property values.<br>
-     * <br>
-     * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.23
-     * 
+     * https://tools.ietf.org/html/draft-fge-json-schema-validation-00#section-7
+     *
      * @return The value
      */
     public String getFormat()
     {
         return format;
     }
-    
+
     /**
      * See {@link #getFormat()}
-     * 
+     *
      * @param format The value
      */
     public void setFormat(String format)
@@ -496,31 +543,4 @@ public class Schema
         this.format = format;
     }
 
-    /**
-     * This attribute indicates if the instance must have a value, and not
-     * be undefined. This is false by default, making the instance optional.<br>
-     * <br>
-     * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.7<br>
-     * <br>
-     * TODO: It is not clear whether this belongs here. This is a part that
-     * has been refactored between v03 and v04: In v04, it is an array of 
-     * property names, and NOT stored for each property individually. 
-     * 
-     * @return The value
-     */
-    public Boolean isRequired()
-    {
-        return required;
-    }
-    
-    /**
-     * See {@link #isRequired()}
-     * 
-     * @param required The value
-     */
-    public void setRequired(Boolean required)
-    {
-        this.required = required;
-    }
- 
 }

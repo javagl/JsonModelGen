@@ -24,16 +24,16 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package de.javagl.jsonmodelgen.json.schema.v3.codemodel;
+package de.javagl.jsonmodelgen.json.schema.v4.codemodel;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
 
-import de.javagl.jsonmodelgen.json.schema.v3.ArraySchema;
-import de.javagl.jsonmodelgen.json.schema.v3.NumberSchema;
-import de.javagl.jsonmodelgen.json.schema.v3.Schema;
+import de.javagl.jsonmodelgen.json.schema.v4.ArraySchema;
+import de.javagl.jsonmodelgen.json.schema.v4.NumberSchema;
+import de.javagl.jsonmodelgen.json.schema.v4.Schema;
 
 /**
  * Methods to create JavaDocs based on a {@link Schema} 
@@ -58,13 +58,15 @@ class CodeModelDocs
      * @param className The target class
      * @param propertyName The property name
      * @param propertySchema The property schema
+     * @param isRequired Whether the property is required
      * @return The string
      */
     static String createJavaDocDescription(
-        String className, String propertyName, Schema propertySchema)
+        String className, String propertyName, 
+        Schema propertySchema, boolean isRequired)
     {
         return createJavaDoc(createDescriptionLines(
-            className, propertyName, propertySchema));
+            className, propertyName, propertySchema, isRequired));
     }
     
     /**
@@ -98,15 +100,17 @@ class CodeModelDocs
      * @param className The target class
      * @param propertyName The property name
      * @param propertySchema The property schema
+     * @param isRequired Whether the property is required
      * @return The strings
      */
     private static List<String> createDescriptionLines(
-        String className, String propertyName, Schema propertySchema)
+        String className, String propertyName, Schema propertySchema,
+        boolean isRequired)
     {
         List<String> descriptionLines = new ArrayList<String>();
         
         descriptionLines.addAll(createBasicDescription(
-            className, propertyName, propertySchema));
+            className, propertyName, propertySchema, isRequired));
         
         if (propertySchema.isNumber())
         {
@@ -135,10 +139,12 @@ class CodeModelDocs
      * @param className The target class
      * @param propertyName The property name
      * @param propertySchema The property schema
+     * @param isRequired Whether the property is required
      * @return The strings
      */
     private static List<String> createBasicDescription(
-        String className, String propertyName, Schema propertySchema)
+        String className, String propertyName, Schema propertySchema, 
+        boolean isRequired)
     {
         List<String> descriptionLines = new ArrayList<String>();
         String propertyDescription = propertySchema.getDescription();
@@ -146,7 +152,7 @@ class CodeModelDocs
         {
             propertyDescription = "The "+propertyName+" of this "+className;
         }
-        if (propertySchema.isRequired() == Boolean.TRUE)
+        if (isRequired)
         {
             propertyDescription += " (required)";
         }
@@ -262,7 +268,7 @@ class CodeModelDocs
             Schema itemSchema = itemSchemas.iterator().next();
             List<String> itemDescriptionLines = 
                 createDescriptionLines(
-                    "array", "elements", itemSchema);
+                    "array", "elements", itemSchema, false);
             for (String itemDescription : itemDescriptionLines)
             {
                 descriptionLines.add("&nbsp;&nbsp;"+itemDescription);

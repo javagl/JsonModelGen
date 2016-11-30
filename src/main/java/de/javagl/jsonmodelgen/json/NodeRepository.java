@@ -177,26 +177,45 @@ public class NodeRepository
     {
         log("generateSubNodes of "+uri);
         
-        Iterator<Entry<String, JsonNode>> iterator = node.fields();
-        while (iterator.hasNext())
+        if (node.isArray())
         {
-            Entry<String, JsonNode> field = iterator.next();
-            String fieldName = field.getKey();
-            JsonNode fieldValue = field.getValue();
-            
-            log("generateSubNodes field '"+fieldName+"' value "+fieldValue);
-            
-            if (fieldName.equals("$ref"))
+            for (int i=0; i<node.size(); i++)
             {
-                String refString = fieldValue.asText();
-                processRef(uri, node, refString);
+                JsonNode arrayItem = node.get(i);
+
+                log("generateSubNodes for array item "+arrayItem);
+                
+                URI itemUri = URIs.appendToFragment(uri, String.valueOf(i));
+                
+                logIndent++;
+                generateNodes(itemUri, arrayItem);
+                logIndent--;
             }
-            uri = getCanonicalUri(uri);
-            URI propertyUri = URIs.appendToFragment(uri, fieldName);
-            
-            logIndent++;
-            generateNodes(propertyUri, fieldValue);
-            logIndent--;
+        }
+        else
+        {
+            Iterator<Entry<String, JsonNode>> iterator = node.fields();
+            while (iterator.hasNext())
+            {
+                Entry<String, JsonNode> field = iterator.next();
+                String fieldName = field.getKey();
+                JsonNode fieldValue = field.getValue();
+                
+                log("generateSubNodes field '"+fieldName+"' value "+fieldValue);
+                
+                if (fieldName.equals("$ref"))
+                {
+                    String refString = fieldValue.asText();
+                    processRef(uri, node, refString);
+                }
+                
+                uri = getCanonicalUri(uri);
+                URI propertyUri = URIs.appendToFragment(uri, fieldName);
+                
+                logIndent++;
+                generateNodes(propertyUri, fieldValue);
+                logIndent--;
+            }
         }
     }
 

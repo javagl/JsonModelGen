@@ -27,10 +27,14 @@
 package de.javagl.jsonmodelgen.json.schema.codemodel;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
+import de.javagl.jsonmodelgen.json.URIs;
 
 /**
  * Utility methods for schema generators 
@@ -44,49 +48,125 @@ public class SchemaGeneratorUtils
         Logger.getLogger(SchemaGeneratorUtils.class.getName());
     
     /**
-     * Returns the schema that is referred to from the <code>"extends"</code>
+     * Returns the schemas that are referred to from the specified
      * property of the given node. This assumes that the given node contains
-     * an <code>"extends"</code> property that refers to a node which contains
-     * a <code>"$ref"</code> property that contains a (relative) URI. If such
-     * a reference is present, it is resolved against the given base URI and
-     * passed to the given schema resolver for resolution. Otherwise, a warning
-     * is printed and <code>null</code> is returned.
+     * a property with the given name that refers to an array of nodes.
+     * These nodes must either contain <code>"$ref"</code> properties that 
+     * contain (relative) URIs, or standalone schema definitions that 
+     * contain an explicit <code>"type" : [ ... ]</code> property with a list 
+     * of type strings.<br>  
+     * <br>
+     * If a reference or is present, it is resolved against the given base 
+     * URI and passed to the given schema resolver for resolution.<br>
+     * <br> 
+     * If a standalone schema is present, then the fragment of the given
+     * URI is extended with a fragment that is derived from the given 
+     * propertyName, and the resulting URI is passed to the given schema 
+     * resolver for resolution.<br>
+     * <br>
+     * Otherwise, a warning is printed and <code>null</code> is returned.
      * 
      * @param uri The base URI of the schema
      * @param node The node
+     * @param propertyName The name of the property that contains an array
+     * of references
+     * @param schemaResolver The function that can resolve schemas for a
+     * given URI
+     * @return The resolved schemas
+     */
+    public static <S> List<S> getSubSchemas(
+        URI uri, JsonNode node, String propertyName, 
+        Function<URI, S> schemaResolver)
+    {
+        JsonNode propertyNode = node.get(propertyName);
+        if (propertyNode == null)
+        {
+            logger.warning("getSubSchemas: Found no "+propertyName+" node");
+            logger.warning("    node         "+node);
+            return null;
+        }
+        
+        if (!propertyNode.isArray())
+        {
+            logger.warning("getSubSchemas: The "+propertyName+" node is no array");
+            logger.warning("    node         "+node);
+            logger.warning("    propertyNode "+propertyNode);
+            return null;
+        }
+        
+        List<S> subSchemas = new ArrayList<S>();
+        for (int i=0; i<propertyNode.size(); i++)
+        {
+            String propertyNodeItemName = propertyName+"/"+i;
+            JsonNode propertyNodeItem = propertyNode.get(i);
+            S subSchema = getSubSchema(uri, propertyNodeItem, 
+                propertyNodeItemName, schemaResolver);
+            if (subSchema == null)
+            {
+                logger.warning("getSubSchemas: The " + propertyName + " array element " + 
+                    propertyNodeItemName + " did not define a schema");
+                logger.warning("    node             "+node);
+                logger.warning("    propertyNode     "+propertyNode);
+                logger.warning("    propertyNodeItem "+propertyNode);
+            }
+            else
+            {
+                subSchemas.add(subSchema);
+            }
+        }
+        return subSchemas;
+    }
+    
+    /**
+     * Returns the schema that is referred to from the given node. This assumes 
+     * that the given node either contains a <code>"$ref"</code> property that 
+     * contains a (relative) URI, or a standalone schema definition that 
+     * contains an explicit <code>"type" : [ ... ]</code> property with a list 
+     * of type strings.<br>  
+     * <br>
+     * If a reference or is present, it is resolved against the given base 
+     * URI and passed to the given schema resolver for resolution.<br>
+     * <br> 
+     * If a standalone schema is present, then the fragment of the given
+     * URI is extended with the given subSchemaFragment, and the resulting
+     * URI is passed to the given schema resolver for resolution.<br>
+     * <br>
+     * Otherwise, a warning is printed and <code>null</code> is returned.
+     * 
+     * @param uri The base URI of the schema
+     * @param node The node
+     * @param propertyNodeItemName The name for the node
      * @param schemaResolver The function that can resolve schemas for a
      * given URI
      * @return The resolved schema
      */
-    public static <S> S getExtendsSchema(
-        URI uri, JsonNode node, Function<URI, S> schemaResolver)
+    public static <S> S getSubSchema(
+        URI uri, JsonNode node, String subSchemaFragment, 
+        Function<URI, S> schemaResolver)
     {
-        JsonNode extendsNode = node.get("extends");
-        if (extendsNode == null)
-        {
-            logger.warning("getExtendsSchema: Found no extends node");
-            logger.warning("    node         "+node);
-            return null;
-        }
-        URI refUri = getRefUriOptional(uri, extendsNode);
+        URI refUri = getRefUriOptional(uri, node);
         if (refUri == null)
         {
-            logger.warning("getExtendsSchema: Found no refUri in extends node");
-            logger.warning("    extendsNode  "+extendsNode);
-            return null;
+            //logger.warning("getSubSchema: Found no refUri in node");
+            //logger.warning("    node  "+node);
+            //logger.warning("    Assuming type information to be present, resolving...");
+            
+            URI subUri = URIs.appendToFragment(uri, subSchemaFragment);
+            return schemaResolver.apply(subUri);
         }
-        S extended = schemaResolver.apply(refUri);
-        if (extended == null)
+        S subSchema = schemaResolver.apply(refUri);
+        if (subSchema == null)
         {
-            logger.warning("getExtendsSchema: " + 
-                "Could not resolve schema of extends ref");
-            logger.warning("    uri          "+uri);
-            logger.warning("    extendsNode  "+extendsNode);
-            logger.warning("    refUri       "+refUri);
+            logger.warning("getSubSchema: " + 
+                "Could not resolve schema of node ref");
+            logger.warning("    uri              "+uri);
+            logger.warning("    node              "+node);
+            logger.warning("    refUri           "+refUri);
             return null;
         }
-        return extended;
+        return subSchema;
     }
+    
     
     /**
      * Tries to obtain the value of the <code>"$ref"</code> field from the 

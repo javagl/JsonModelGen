@@ -1,8 +1,8 @@
 /*
- * JsonModelGen - Model Generation from JSON Schema 
+ * JsonModelGen - Model Generation from JSON Schema
  *
  * Copyright (c) 2015-2016 Marco Hutter - http://www.javagl.de
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,10 +11,10 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -24,7 +24,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package de.javagl.jsonmodelgen.json.schema.v3.codemodel;
+package de.javagl.jsonmodelgen.json.schema.v4.codemodel;
 
 import java.io.File;
 import java.io.IOException;
@@ -58,15 +58,15 @@ import de.javagl.jsonmodelgen.json.schema.codemodel.ClassNameGenerator;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModelInitializers;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModels;
 import de.javagl.jsonmodelgen.json.schema.codemodel.StringUtils;
-import de.javagl.jsonmodelgen.json.schema.v3.ArraySchema;
-import de.javagl.jsonmodelgen.json.schema.v3.BooleanSchema;
-import de.javagl.jsonmodelgen.json.schema.v3.IntegerSchema;
-import de.javagl.jsonmodelgen.json.schema.v3.NumberSchema;
-import de.javagl.jsonmodelgen.json.schema.v3.ObjectSchema;
-import de.javagl.jsonmodelgen.json.schema.v3.Schema;
-import de.javagl.jsonmodelgen.json.schema.v3.SchemaGenerator;
-import de.javagl.jsonmodelgen.json.schema.v3.SchemaUtils;
-import de.javagl.jsonmodelgen.json.schema.v3.StringSchema;
+import de.javagl.jsonmodelgen.json.schema.v4.ArraySchema;
+import de.javagl.jsonmodelgen.json.schema.v4.BooleanSchema;
+import de.javagl.jsonmodelgen.json.schema.v4.IntegerSchema;
+import de.javagl.jsonmodelgen.json.schema.v4.NumberSchema;
+import de.javagl.jsonmodelgen.json.schema.v4.ObjectSchema;
+import de.javagl.jsonmodelgen.json.schema.v4.Schema;
+import de.javagl.jsonmodelgen.json.schema.v4.SchemaGenerator;
+import de.javagl.jsonmodelgen.json.schema.v4.SchemaUtils;
+import de.javagl.jsonmodelgen.json.schema.v4.StringSchema;
 
 /**
  * A class for generating classes from the {@link Schema} information that
@@ -77,34 +77,33 @@ public class ClassGenerator
     /**
      * The logger used in this class
      */
-    private static final Logger logger = 
+    private static final Logger logger =
         Logger.getLogger(ClassGenerator.class.getName());
-    
+
     /**
      * The log level used for the resolving process
      */
     private static final Level resolvingLogLevel = Level.FINE;
-    
+
     /**
      * The log level used for the class creating process
      */
     private static final Level creatingLogLevel = Level.FINE;
-    
-    
+
     /**
      * The {@link ClassNameGenerator} that will generate the names
      * of classes for {@link ObjectSchema} instances
      */
-    private final ClassNameGenerator<ObjectSchema> classNameGenerator = 
+    private final ClassNameGenerator<ObjectSchema> classNameGenerator =
         new DefaultClassNameGenerator();
-    
+
     /**
      * The function that receives a {@link Schema} and returns a CodeModel
-     * type. Internally, this is just the {@link #doResolveType(Schema)} 
+     * type. Internally, this is just the {@link #doResolveType(Schema)}
      * method
      */
     private final Function<Schema, JType> typeResolver;
-        
+
     /**
      * The default {@link TypeCreator} implementation
      */
@@ -115,7 +114,7 @@ public class ClassGenerator
         {
             return doCreateType(schema);
         }
-        
+
         @Override
         public JType createObjectType(ObjectSchema schema)
         {
@@ -152,7 +151,7 @@ public class ClassGenerator
             return codeModel.ref(String.class);
         }
     }
-    
+
     /**
      * The function that creates CodeModel types for the {@link Schema} types
      */
@@ -160,15 +159,15 @@ public class ClassGenerator
 
     /**
      * The {@link SchemaGenerator} which generated the {@link Schema} for
-     * which this instance should generate the classes 
+     * which this instance should generate the classes
      */
     private SchemaGenerator schemaGenerator;
-    
+
     /**
      * The code model that will be used to create the classes
      */
     private final JCodeModel codeModel = new JCodeModel();
-    
+
     /**
      * The package name that should be used for the generated classes
      */
@@ -178,17 +177,17 @@ public class ClassGenerator
      * The header code that should be inserted into every source code file
      */
     private final String headerCode;
-    
+
     /**
      * The mapping from {@link Schema} instances to code model types that
      * have been created so far
      */
     private Map<Schema, JType> types;
-    
+
     /**
      * Creates a new class generator for the {@link Schema} definitions that
      * have been generated by the given {@link SchemaGenerator}.
-     * 
+     *
      * @param schemaGenerator The {@link SchemaGenerator}
      * @param packageName The package name that should be used for the
      * generated classes
@@ -213,10 +212,10 @@ public class ClassGenerator
         ObjectSchema objectSchema = schema.asObject();
         typeResolver.apply(objectSchema);
     }
-    
+
     /**
      * Write the generated classes to the given destination directory
-     * 
+     *
      * @param destinationDirectory The destination directory
      * @throws IOException If an IO error occurs
      */
@@ -225,7 +224,7 @@ public class ClassGenerator
         CodeWriter source = new CodeWriter()
         {
             CodeWriter delegate = new FileCodeWriter(destinationDirectory);
-            
+
             @Override
             public OutputStream openBinary(JPackage pkg, String fileName)
                 throws IOException
@@ -237,7 +236,7 @@ public class ClassGenerator
                 }
                 return result;
             }
-            
+
             @Override
             public void close() throws IOException
             {
@@ -247,10 +246,10 @@ public class ClassGenerator
         CodeWriter resource = new FileCodeWriter(destinationDirectory);
         codeModel.build(source, resource);
     }
-    
+
     /**
      * Returns the fully qualified name for the given class name
-     * 
+     *
      * @param className The class name
      * @return The fully qualified name
      */
@@ -262,13 +261,13 @@ public class ClassGenerator
         }
         return packageName+"."+className;
     }
-    
+
     /**
      * Try to resolve the type that is described by the given {@link Schema}.
      * If the type already has been created, it will be returned. Otherwise,
      * this will create the corresponding type, store it internally, and
      * return the result
-     * 
+     *
      * @param schema The {@link Schema}
      * @return The type
      */
@@ -288,17 +287,17 @@ public class ClassGenerator
             logger.log(resolvingLogLevel, "    schema    "+
                 SchemaUtils.createShortSchemaDebugString(schema));
         }
-        
+
         type = typeCreator.createType(schema);
         types.put(schema, type);
         return type;
     }
-    
+
     /**
      * Create the code model type for the given {@link Schema}. This delegates
-     * to the {@link #typeCreator} methods, depending on the {@link Schema} 
+     * to the {@link #typeCreator} methods, depending on the {@link Schema}
      * type
-     *  
+     *
      * @param schema The {@link Schema}
      * @return The type
      */
@@ -312,7 +311,7 @@ public class ClassGenerator
             logger.log(creatingLogLevel, "    schema    "+
                 SchemaUtils.createShortSchemaDebugString(schema));
         }
-        
+
         if (schema.isObject())
         {
             ObjectSchema objectSchema = schema.asObject();
@@ -352,7 +351,7 @@ public class ClassGenerator
 
         if (logger.isLoggable(creatingLogLevel))
         {
-            logger.log(creatingLogLevel, 
+            logger.log(creatingLogLevel,
                 "createType: WARNING: Could not create type");
             logger.log(creatingLogLevel, "    uri       "+
                 schemaGenerator.getCanonicalUri(schema));
@@ -362,11 +361,11 @@ public class ClassGenerator
         }
         return codeModel.ref(Object.class);
     }
-    
-    
+
+
     /**
      * Create the code model type for the given {@link ObjectSchema}
-     * 
+     *
      * @param objectSchema The {@link ObjectSchema}
      * @return The type
      */
@@ -380,7 +379,7 @@ public class ClassGenerator
             logger.log(creatingLogLevel, "    schema    "+
                 SchemaUtils.createShortSchemaDebugString(objectSchema));
         }
-        
+
 //        boolean debug = true;
 //        if (debug)
 //        {
@@ -388,16 +387,16 @@ public class ClassGenerator
 //            URI uri = schemaGenerator.getCanonicalUri(objectSchema);
 //            logger.info(SchemaUtils.createSchemaDebugString(uri, objectSchema));
 //        }
-        
+
         if (!containsRelevantInformation(objectSchema))
         {
             return doCreateObjectTypeFromExtended(objectSchema);
         }
 
         List<URI> uris = schemaGenerator.getUris(objectSchema);
-        String className = 
+        String className =
             classNameGenerator.generateClassName(objectSchema, uris);
-        
+
 //        if (debug)
 //        {
 //            logger.info("    className "+className);
@@ -405,47 +404,48 @@ public class ClassGenerator
 //            URI uri = schemaGenerator.getCanonicalUri(objectSchema);
 //            logger.info(SchemaUtils.createSchemaDebugString(uri, objectSchema));
 //        }
-        
-        JDefinedClass definedClass = 
+
+        JDefinedClass definedClass =
             resolveDefinedClass(objectSchema, className, ClassType.CLASS);
         handleObjectTypeExtended(definedClass, objectSchema);
 
         handleObjectTypeProperties(objectSchema, definedClass);
         handleObjectTypeAdditionalProperties(objectSchema, definedClass);
-        
+
         return definedClass;
     }
-    
+
+
     /**
      * Returns whether the schema has any {@link ObjectSchema#getProperties()}
-     * or {@link ObjectSchema#getPatternProperties()} or 
+     * or {@link ObjectSchema#getPatternProperties()} or
      * {@link ObjectSchema#getDependencies()}
-     * 
+     *
      * @param objectSchema The {@link ObjectSchema}
      * @return Whether the schema contains relevant information
      */
     private static boolean containsRelevantInformation(
         ObjectSchema objectSchema)
     {
-        return 
+        return
             objectSchema.getProperties() != null ||
             objectSchema.getPatternProperties() != null ||
             objectSchema.getDependencies() != null;
     }
-    
+
 
     /**
-     * If the given {@link ObjectSchema} has 
+     * If the given {@link ObjectSchema} has
      * {@link ObjectSchema#getAdditionalProperties() additionalProperties},
      * this creates a map for the properties as a field in the given class
-     * 
+     *
      * @param objectSchema The {@link ObjectSchema}
      * @param definedClass The class that the property may be added to
      */
     private void handleObjectTypeAdditionalProperties(
         ObjectSchema objectSchema, JDefinedClass definedClass)
     {
-        Schema additionalPropertiesSchema = 
+        Schema additionalPropertiesSchema =
             objectSchema.getAdditionalProperties();
         if (additionalPropertiesSchema == null)
         {
@@ -457,12 +457,12 @@ public class ClassGenerator
         JClass boxedValueType = valueType.boxify();
         JClass typedMapType = mapType.narrow(keyType, boxedValueType);
 
-        addField(definedClass, "additionalProperties", 
-            typedMapType, additionalPropertiesSchema);
-        CodeModelMethods.addSetter(definedClass, "additionalProperties", 
-            typedMapType, additionalPropertiesSchema);
-        CodeModelMethods.addGetter(definedClass, "additionalProperties", 
-            typedMapType, additionalPropertiesSchema);
+        addField(definedClass, "additionalProperties",
+            typedMapType, additionalPropertiesSchema, false);
+        CodeModelMethods.addSetter(definedClass, "additionalProperties",
+            typedMapType, additionalPropertiesSchema, false);
+        CodeModelMethods.addGetter(definedClass, "additionalProperties",
+            typedMapType, additionalPropertiesSchema, false);
         
         if (GlTFConfig.CREATE_ADDERS_AND_REMOVERS)
         {
@@ -471,16 +471,15 @@ public class ClassGenerator
                 typedMapType, additionalPropertiesSchema);
             CodeModelMethods.addRemoverForMap(
                 definedClass, "additionalProperties", 
-                typedMapType, additionalPropertiesSchema);
+                typedMapType, additionalPropertiesSchema, false);
         }
-
     }
 
     /**
-     * Assuming that the given {@link ObjectSchema} does not contain 
+     * Assuming that the given {@link ObjectSchema} does not contain
      * {@link #containsRelevantInformation(ObjectSchema) relevant information},
      * create a type for it, based on its extended type
-     * 
+     *
      * @param objectSchema The {@link ObjectSchema}
      * @return The type
      */
@@ -488,7 +487,7 @@ public class ClassGenerator
     {
         if (objectSchema.getAdditionalProperties() != null)
         {
-            Schema additionalPropertiesSchema = 
+            Schema additionalPropertiesSchema =
                 objectSchema.getAdditionalProperties();
 
             JClass mapType = codeModel.ref(Map.class);
@@ -498,36 +497,49 @@ public class ClassGenerator
             JClass typedMapType = mapType.narrow(keyType, boxedValueType);
             return typedMapType;
         }
-        
-        Schema extendsSchema = objectSchema.getExtendsSchema();
-        if (extendsSchema != null)
+
+        List<Schema> allOf = objectSchema.getAllOf();
+        if (allOf != null)
         {
-            logger.fine("No important properties in "+
-                SchemaUtils.createShortSchemaDebugString(objectSchema)+
-                ", using extended: "+
-                SchemaUtils.createShortSchemaDebugString(extendsSchema));
-            return typeResolver.apply(extendsSchema);
+            if (allOf.size() == 1)
+            {
+                Schema extendedSchema = allOf.get(0);
+                logger.fine("No important properties in "+
+                    SchemaUtils.createShortSchemaDebugString(objectSchema)+
+                    ", using the only type in allOf: "+
+                    SchemaUtils.createShortSchemaDebugString(extendedSchema));
+                return typeResolver.apply(extendedSchema);
+            }
         }
-        
+
         logger.warning("No important properties in "+
             SchemaUtils.createShortSchemaDebugString(objectSchema)+
-            ", and no extended, using Object");
+            ", and not exactly one type in allOf, using Object");
         return codeModel._ref(Object.class);
     }
-
+    
     
     /**
      * If the given {@link ObjectSchema} is extending another schema (as
-     * given by {@link ObjectSchema#getExtendsSchema()}), then the extended
-     * type will be resolved and set as the supertype of the given class
-     * 
+     * given by {@link ObjectSchema#getAllOf()}, 
+     * {@link ObjectSchema#getAnyOf()} 
+     * or {@link ObjectSchema#getOneOf()} then the extended
+     * type will be resolved and set as the supertype of the given class.
+     * If there is not exactly one supertype, then a warning will be printed.
+     *
      * @param definedClass The class for the given {@link ObjectSchema}
      * @param objectSchema The {@link ObjectSchema}
+     * 
+     * @deprecated There is no real "inheritance" in JSON schemas. 
+     * See http://stackoverflow.com/questions/27410216/json-schema-and-inheritance
+     * For backward compatibility
+     * 
      */
     private void handleObjectTypeExtended(JDefinedClass definedClass,
         ObjectSchema objectSchema)
     {
-        Schema extendedSchema = objectSchema.getExtendsSchema();
+        
+        Schema extendedSchema = getExtendedSchema(objectSchema);
         if (extendedSchema != null)
         {
             JType extendedType = typeResolver.apply(extendedSchema);
@@ -535,6 +547,7 @@ public class ClassGenerator
             {
                 JClass extendedClass = (JClass)extendedType;
                 definedClass._extends(extendedClass);
+                return;
             }
             else
             {
@@ -542,13 +555,89 @@ public class ClassGenerator
                     SchemaUtils.createShortSchemaDebugString(extendedSchema));
             }
         }
+        
+        List<Schema> anyOf = objectSchema.getAnyOf();
+        if (anyOf != null && !anyOf.isEmpty())
+        {
+            logger.warning("Cannot translate anyOf property: "+
+                SchemaUtils.createShortSchemaDebugString(anyOf));
+        }
+        
+        List<Schema> oneOf = objectSchema.getOneOf();
+        if (oneOf != null && !oneOf.isEmpty())
+        {
+            logger.warning("Cannot translate oneOf property: "+
+                SchemaUtils.createShortSchemaDebugString(oneOf));
+        }
     }
+    
+    /**
+     * Returns the schema that is the only element of the "allOf" property
+     * of the given schema, or <code>null</code> if the given schema does
+     * not have an allOf property, or there is NOT exactly one element in
+     * the allOf property
+     * 
+     * @param objectSchema The schema
+     * @return The extended schema
+     */
+    private Schema getExtendedSchema(ObjectSchema objectSchema)
+    {
+        List<Schema> allOf = objectSchema.getAllOf();
+        if (allOf != null)
+        {
+            if (allOf.size() > 1)
+            {
+                // TODO The type in question must become "Object"!!!
+                logger.warning("Cannot extend multiple classes: "+
+                    SchemaUtils.createShortSchemaDebugString(allOf));
+                return null;
+            }
+            else if (allOf.size() == 1)
+            {
+                Schema extendedSchema = allOf.get(0);
+                return extendedSchema;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Returns whether the specified property was already declared in one
+     * of the {@link #getExtendedSchema(ObjectSchema) extended schemas}
+     * of the given schema
+     * 
+     * @param objectSchema The object schema
+     * @param propertyName The property name
+     * @return Whether the property was inherited
+     */
+    private boolean isInheritedProperty(
+        ObjectSchema objectSchema, String propertyName)
+    {
+        Schema ancestorSchema = getExtendedSchema(objectSchema);
+        while (ancestorSchema != null)
+        {
+            if (!ancestorSchema.isObject())
+            {
+                return false;
+            }
+            ObjectSchema ancestorObjectSchema = ancestorSchema.asObject();
+            Map<String, Schema> ancestorProperties = 
+                ancestorObjectSchema.getProperties();
+            if (ancestorProperties.containsKey(propertyName))
+            {
+                return true;
+            }
+            ancestorSchema = getExtendedSchema(ancestorObjectSchema);
+        }
+        return false;
+    }
+    
 
     /**
-     * If the given {@link ObjectSchema} has 
-     * {@link ObjectSchema#getProperties()}, then this method will add 
+     * If the given {@link ObjectSchema} has
+     * {@link ObjectSchema#getProperties()}, then this method will add
      * fields for these properties to the given class
-     * 
+     *
      * @param objectSchema The {@link ObjectSchema}
      * @param definedClass The target class for the fields
      */
@@ -563,14 +652,23 @@ public class ClassGenerator
         for (Entry<String, Schema> entry : properties.entrySet())
         {
             String propertyName = entry.getKey();
+
+            if (isInheritedProperty(objectSchema, propertyName))
+            {
+                logger.info("Skipping inherited property \"" + propertyName + "\" in " + objectSchema.getId());
+                continue;
+            }
+            
+            boolean isRequired = SchemaUtils.isRequired(objectSchema, propertyName);
+
             Schema propertySchema = entry.getValue();
             JType propertyType = typeResolver.apply(propertySchema);
 
-            addField(definedClass, propertyName, propertyType, propertySchema);
+            addField(definedClass, propertyName, propertyType, propertySchema, isRequired);
             CodeModelMethods.addSetter(
-                definedClass, propertyName, propertyType, propertySchema);
+                definedClass, propertyName, propertyType, propertySchema, isRequired);
             CodeModelMethods.addGetter(
-                definedClass, propertyName, propertyType, propertySchema);
+                definedClass, propertyName, propertyType, propertySchema, isRequired);
             
             if (GlTFConfig.CREATE_ADDERS_AND_REMOVERS)
             {
@@ -581,7 +679,7 @@ public class ClassGenerator
                         propertyType, propertySchema);
                     CodeModelMethods.addRemoverForMap(
                         definedClass, propertyName, 
-                        propertyType, propertySchema);
+                        propertyType, propertySchema, isRequired);
                 }
                 else if (CodeModels.isSubtypeOf(propertyType, List.class))
                 {
@@ -590,14 +688,13 @@ public class ClassGenerator
                         propertyType, propertySchema);
                     CodeModelMethods.addRemoverForList(
                         definedClass, propertyName, 
-                        propertyType, propertySchema);
+                        propertyType, propertySchema, isRequired);
                 }
             }
 
             if (GlTFConfig.CREATE_GETTERS_WITH_DEFAULT)
             {
-                if (propertySchema.isRequired() != Boolean.TRUE &&
-                    propertySchema.getDefaultString() != null)
+                if (!isRequired && propertySchema.getDefaultString() != null)
                 {
                     CodeModelMethods.addDefaultGetter(
                         definedClass, propertyName, 
@@ -606,22 +703,23 @@ public class ClassGenerator
             }
         }
     }
-    
+
     /**
      * Create a field for the specified property in the given class
-     * 
+     *
      * @param definedClass The target class
      * @param propertyName The property name (will be the field name)
      * @param propertyType The property type
      * @param propertySchema The property schema
+     * @param isRequired Whether the property is required
      */
     private void addField(JDefinedClass definedClass, String propertyName,
-        JType propertyType, Schema propertySchema)
+        JType propertyType, Schema propertySchema, boolean isRequired)
     {
         JFieldVar fieldVar = definedClass.field(
             JMod.PRIVATE, propertyType, propertyName);
-        
-        if (propertySchema.isRequired() == Boolean.TRUE)
+
+        if (isRequired)
         {
         	JExpression initializer = createInitializer(propertySchema);
         	if (initializer != null)
@@ -633,39 +731,35 @@ public class ClassGenerator
         	    // This is not critical, as it refers to fields
         	    // that should be filled by the JSON parser
         		logger.fine(
-        			"Found required field, but could not " + 
+        			"Found required field, but could not " +
         		    "create initializer for "+
         			SchemaUtils.createShortSchemaDebugString(propertySchema));
         	}
         }
-        
+
         JDocComment docComment = fieldVar.javadoc();
         StringBuilder sb = new StringBuilder();
         String description = CodeModelDocs.createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema);
+            definedClass.name(), propertyName, propertySchema, isRequired);
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH));
         docComment.append(sb.toString());
-        
-    }
 
-    
-    
-    
+    }
 
 
     /**
      * Create the initializer expression for the initialization of the
      * field that is created for the given property {@link Schema}
-     * 
+     *
      * @param propertySchema The property {@link Schema}
      * @return The initializer expression
      */
     private JExpression createInitializer(Schema propertySchema)
     {
         JType propertyType = typeResolver.apply(propertySchema);
-        
-        JExpression initializer = 
+
+        JExpression initializer =
             CodeModelInitializers.createInitializer(
                 codeModel, propertySchema.getDefaultString(), propertyType);
         if (initializer != null)
@@ -674,15 +768,15 @@ public class ClassGenerator
         }
         //return deriveInitializer(propertySchema);
         return null;
-        
+
     }
-    
-    
+
+
     /**
      * Resolves the defined class with the given name for the given schema
      * in the current code model. If the class is not yet known, it is
      * created, stored in the code model, and returned.
-     * 
+     *
      * @param schema The {@link Schema}
      * @param className The (unqualified) class name
      * @param classType The class type
@@ -691,7 +785,7 @@ public class ClassGenerator
     private JDefinedClass resolveDefinedClass(
         Schema schema, String className, ClassType classType)
     {
-        JDefinedClass definedClass = 
+        JDefinedClass definedClass =
             codeModel._getClass(fullyQualifiedName(className));
         if (definedClass == null)
         {
@@ -718,15 +812,15 @@ public class ClassGenerator
         URI canonicalUri = schemaGenerator.getCanonicalUri(schema);
         sb.append("Auto-generated for "+
             StringUtils.extractSchemaName(canonicalUri));
-        docComment.append(StringUtils.format(sb.toString(), 
+        docComment.append(StringUtils.format(sb.toString(),
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH));
         return definedClass;
     }
-    
-    
+
+
     /**
      * Creates the code model type for the given {@link ArraySchema}
-     * 
+     *
      * @param arraySchema The {@link ArraySchema}
      * @return The code model type
      */
@@ -739,23 +833,24 @@ public class ClassGenerator
         }
         Schema itemSchema = items.iterator().next();
         JType itemType = typeResolver.apply(itemSchema);
-        
+
         if (arraySchema.getMinItems() != null &&
             arraySchema.getMaxItems() != null)
         {
             JType unboxifiedItemType = itemType.unboxify();
             return unboxifiedItemType.array();
         }
-        
+
         // The order of elements must be retained, even
-        // when they are "unique items", so it must ALWAYS 
+        // when they are "unique items", so it must ALWAYS
         // be a list (and can not be a set)
         //if (arraySchema.getUniqueItems() == Boolean.TRUE)
         //{
         //    return codeModel.ref(Set.class).narrow(itemType);
         //}
-        
+
         return codeModel.ref(List.class).narrow(itemType);
     }
+
 
 }

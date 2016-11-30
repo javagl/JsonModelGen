@@ -24,7 +24,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package de.javagl.jsonmodelgen.json.schema.v3.codemodel;
+package de.javagl.jsonmodelgen.json.schema.v4.codemodel;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,7 +48,7 @@ import com.sun.codemodel.JType;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModelInitializers;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModels;
 import de.javagl.jsonmodelgen.json.schema.codemodel.StringUtils;
-import de.javagl.jsonmodelgen.json.schema.v3.Schema;
+import de.javagl.jsonmodelgen.json.schema.v4.Schema;
 
 /**
  * Methods to create methods in a code model
@@ -63,11 +63,12 @@ class CodeModelMethods
      * @param propertyName The property name (will be the field name)
      * @param propertyType The property type
      * @param propertySchema The property schema
+     * @param isRequired Whether the property is required
      * @return The setter method
      */
     static JMethod addSetter(
         JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+        JType propertyType, Schema propertySchema, boolean isRequired)
     {
         JCodeModel codeModel = definedClass.owner();
         String methodName = "set" + StringUtils.capitalize(propertyName);
@@ -79,7 +80,7 @@ class CodeModelMethods
         JBlock nullHandlingStatements = new JBlock();
         CodeModelValidations.createNullHandlingStatements(
             nullHandlingStatements, codeModel, 
-            propertyName, propertyType, propertySchema);
+            propertyName, propertyType, propertySchema, isRequired);
         addAllStatements(block, nullHandlingStatements);
         
         JBlock validationStatements = new JBlock();
@@ -96,12 +97,12 @@ class CodeModelMethods
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
         String description = CodeModelDocs.createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema);
+            definedClass.name(), propertyName, propertySchema, isRequired);
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
         sb.append("@param "+propertyName+" The "+propertyName+" to set");
-        if (propertySchema.isRequired() == Boolean.TRUE)
+        if (isRequired)
         {
             sb.append("\n");
             sb.append("@throws NullPointerException If the given value " + 
@@ -125,11 +126,12 @@ class CodeModelMethods
      * @param propertyName The property name (will be the field name)
      * @param propertyType The property type
      * @param propertySchema The property schema
+     * @param isRequired Whether the property is required
      * @return The getter method
      */
     static JMethod addGetter(
         JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+        JType propertyType, Schema propertySchema, boolean isRequired)
     {
         JCodeModel codeModel = definedClass.owner();
         String methodName = getGetterMethodName(
@@ -142,7 +144,7 @@ class CodeModelMethods
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
         String description = CodeModelDocs.createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema);
+            definedClass.name(), propertyName, propertySchema, isRequired);
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
@@ -307,13 +309,14 @@ class CodeModelMethods
      * @param propertyName The property name (will be the field name)
      * @param propertyType The property type
      * @param propertySchema The property schema
+     * @param isRequired Whether the property is required
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "Map"
      */
     static JMethod addRemoverForMap(
         JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+        JType propertyType, Schema propertySchema, boolean isRequired)
     {
         if (!CodeModels.isSubtypeOf(propertyType, Map.class))
         {
@@ -354,7 +357,7 @@ class CodeModelMethods
         block.invoke(JExpr.ref("newMap"), "remove")
             .arg(JExpr.ref("key"));
         
-        if (propertySchema.isRequired() != Boolean.TRUE)
+        if (!isRequired)
         {
             JExpression emptyConditionExpression = 
                 JExpr.ref("newMap").invoke("isEmpty");
@@ -377,7 +380,7 @@ class CodeModelMethods
             propertyName + " of this instance will be replaced with a map" + 
             " that contains all previous mappings, except for the one" + 
             " with the given key."));
-        if (propertySchema.isRequired() != Boolean.TRUE)
+        if (!isRequired)
         {
             javaDocLines.add("If this new map would be empty, " + 
                 "then it will be set to <code>null</code>.");
@@ -474,13 +477,14 @@ class CodeModelMethods
      * @param propertyName The property name (will be the field name)
      * @param propertyType The property type
      * @param propertySchema The property schema
+     * @param isRequired Whether the property is required
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "List"
      */
     static JMethod addRemoverForList(
         JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+        JType propertyType, Schema propertySchema, boolean isRequired)
     {
         if (!CodeModels.isSubtypeOf(propertyType, List.class))
         {
@@ -520,7 +524,7 @@ class CodeModelMethods
         block.invoke(JExpr.ref("newList"), "remove")
             .arg(JExpr.ref("element"));
         
-        if (propertySchema.isRequired() != Boolean.TRUE)
+        if (!isRequired)
         {
             JExpression emptyConditionExpression = 
                 JExpr.ref("newList").invoke("isEmpty");
@@ -543,7 +547,7 @@ class CodeModelMethods
             propertyName + " of this instance will be replaced with a list" + 
             " that contains all previous elements, except for the removed" + 
             " one."));
-        if (propertySchema.isRequired() != Boolean.TRUE)
+        if (!isRequired)
         {
             javaDocLines.add("If this new list would be empty, " + 
                 "then it will be set to <code>null</code>.");

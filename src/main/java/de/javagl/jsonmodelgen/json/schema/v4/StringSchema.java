@@ -1,8 +1,8 @@
 /*
- * JsonModelGen - Model Generation from JSON Schema 
+ * JsonModelGen - Model Generation from JSON Schema
  *
  * Copyright (c) 2015-2016 Marco Hutter - http://www.javagl.de
- * 
+ *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
  * files (the "Software"), to deal in the Software without
@@ -11,10 +11,10 @@
  * copies of the Software, and to permit persons to whom the
  * Software is furnished to do so, subject to the following
  * conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
  * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -24,10 +24,10 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package de.javagl.jsonmodelgen.json.schema.v3;
+package de.javagl.jsonmodelgen.json.schema.v4;
 
 /**
- * Specialization of a {@link Schema} for string types. See 
+ * Specialization of a {@link Schema} for string types. See
  * <a href="https://tools.ietf.org/html/draft-zyp-json-schema-03">
  * https://tools.ietf.org/html/draft-zyp-json-schema-03</a>
  */
@@ -42,7 +42,7 @@ public class StringSchema extends Schema
      * See {@link #getMinLength()}
      */
     private Integer minLength;
-    
+
     /**
      * See {@link #getPattern()}
      */
@@ -53,13 +53,13 @@ public class StringSchema extends Schema
     {
         return this;
     }
-     
+
     /**
-     * When the instance value is a string, this defines the maximum 
+     * When the instance value is a string, this defines the maximum
      * length of the string.<br>
      * <br>
      * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.18
-     * 
+     *
      * @return The value
      */
     public Integer getMaxLength()
@@ -69,7 +69,7 @@ public class StringSchema extends Schema
 
     /**
      * See {@link #getMaxLength()}
-     * 
+     *
      * @param maxLength The value
      */
     public void setMaxLength(Integer maxLength)
@@ -78,11 +78,11 @@ public class StringSchema extends Schema
     }
 
     /**
-     * When the instance value is a string, this defines the minimum 
+     * When the instance value is a string, this defines the minimum
      * length of the string.<br>
      * <br>
      * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.17
-     * 
+     *
      * @return The value
      */
     public Integer getMinLength()
@@ -92,7 +92,7 @@ public class StringSchema extends Schema
 
     /**
      * See {@link #getMinLength()}
-     * 
+     *
      * @param minLength The value
      */
     public void setMinLength(Integer minLength)
@@ -101,11 +101,11 @@ public class StringSchema extends Schema
     }
 
     /**
-     * When the instance value is a string, this provides a regular expression 
+     * When the instance value is a string, this provides a regular expression
      * that a string instance MUST match in order to be valid.<br>
      * <br>
      * https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.16
-     * 
+     *
      * @return The value
      */
     public String getPattern()
@@ -115,7 +115,7 @@ public class StringSchema extends Schema
 
     /**
      * See {@link #getPattern()}
-     * 
+     *
      * @param pattern The value
      */
     public void setPattern(String pattern)
