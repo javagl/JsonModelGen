@@ -154,7 +154,7 @@ public class NodeRepository
     {
         uri = uri.normalize();
         
-        logger.info("Generate nodes for "+uri);
+        //logger.info("Generate nodes for "+uri);
         
         log("generateNodes");
         log("    uri "+uri);

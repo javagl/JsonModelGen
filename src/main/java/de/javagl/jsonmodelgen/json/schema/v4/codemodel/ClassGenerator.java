@@ -525,6 +525,35 @@ public class ClassGenerator
                 return typeResolver.apply(extendedSchema);
             }
         }
+        
+        // In some cases (like glTF), extensible enumerations are modeled
+        // like this:
+        // "anyOf": [
+        //   { "enum": [ 5120 ] },
+        //   { "enum": [ 5121 ] },
+        //   ...
+        //   { "type": "integer" }
+        // ]
+        // Try to find the ONE element that contains the type information.
+        List<Schema> anyOf = objectSchema.getAnyOf();
+        if (anyOf != null)
+        {
+            Schema nonObjectSchema = SchemaCodeUtils.determineTypeFromAnyOf(objectSchema);
+            if (nonObjectSchema == null)
+            {
+                logger.warning("The schema "+
+                    SchemaUtils.createShortSchemaDebugString(objectSchema)+
+                    " uses 'anyOf', but could not derive any"+
+                    " type information. Using Object.");
+            }
+            logger.info("The schema "+
+                SchemaUtils.createShortSchemaDebugString(objectSchema)+
+                " uses 'anyOf'. Using the type information from one of"+
+                " its sub-schemas: "+
+                SchemaUtils.createShortSchemaDebugString(nonObjectSchema));
+            return doCreateType(nonObjectSchema);
+        }
+        
 
         logger.warning("No important properties in "+
             SchemaUtils.createShortSchemaDebugString(objectSchema)+

@@ -26,6 +26,7 @@
  */
 package de.javagl.jsonmodelgen.json.schema.v4.codemodel;
 
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -154,9 +155,21 @@ class CodeModelValidations
         JBlock block, JCodeModel codeModel,
         String propertyName, JType propertyType, Schema schema)
     {
-        if (schema.getEnumStrings() != null)
+        Iterable<String> enumStrings = schema.getEnumStrings();
+        if (enumStrings == null)
         {
-            Set<String> enumStrings = schema.getEnumStrings();
+            if (schema.getAnyOf() != null)
+            {
+                List<String> enumStringsFromAnyOf = 
+                    SchemaCodeUtils.determineEnumStringsFromAnyOf(schema);
+                if (!enumStringsFromAnyOf.isEmpty())
+                {
+                    enumStrings = enumStringsFromAnyOf;
+                }
+            }
+        }
+        if (enumStrings != null)
+        {
             createEnumValidationStatements(
                 block, codeModel, propertyName, propertyType, enumStrings);
         }
@@ -332,7 +345,7 @@ class CodeModelValidations
      */
     static void createEnumValidationStatements(
         JBlock block, JCodeModel codeModel, String propertyName,
-        JType propertyType, Set<String> enumStrings)
+        JType propertyType, Iterable<String> enumStrings)
     {
         if (propertyType.isPrimitive() || propertyType.unboxify().isPrimitive())
         {
@@ -362,7 +375,7 @@ class CodeModelValidations
      */
     static void createPrimitiveEnumValidationStatements(
         JBlock block, JCodeModel codeModel, String propertyName,
-        JPrimitiveType primitivePropertyType, Set<String> enumStrings)
+        JPrimitiveType primitivePropertyType, Iterable<String> enumStrings)
     {
         JExpression conditionExpression = null;
         for (String enumString : enumStrings)
@@ -406,7 +419,7 @@ class CodeModelValidations
      */
     static void createStringEnumValidationStatements(
         JBlock block, JCodeModel codeModel, String propertyName,
-        JType propertyType, Set<String> enumStrings)
+        JType propertyType, Iterable<String> enumStrings)
     {
         JExpression conditionExpression = null;
         for (String enumString : enumStrings)

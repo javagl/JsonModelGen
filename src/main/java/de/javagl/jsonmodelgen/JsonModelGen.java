@@ -59,12 +59,15 @@ public class JsonModelGen
         Locale.setDefault(Locale.ENGLISH);
         
         String headerCode = createHeaderCode("glTF JSON model"); 
-        //String s = "file:/C:/Develop/JsonModelGen/JsonModelGen/data/" + 
-        //    "input/gltf/glTF.schema.json";
-        String s = "https://raw.githubusercontent.com/KhronosGroup/glTF/" + 
-            "master/specification/1.0/schema/glTF.schema.json";
-        URI rootUri = new URI(s);
-        String packageName = "de.javagl.jgltf.impl";
+        //String urlString = "https://raw.githubusercontent.com/KhronosGroup/glTF/" + 
+        //    "master/specification/1.1/schema/glTF.schema.json";
+        String urlString = "https://raw.githubusercontent.com/KhronosGroup/glTF/2.0/specification/2.0/schema/glTF.schema.json";
+        
+        //String s = "file:/C:/Develop/KhronosGroup/glTF/extensions/Khronos/" + 
+        //    "KHR_technique_webgl/schema/glTF.KHR_technique_webgl.schema.json";
+
+        URI rootUri = new URI(urlString);
+        String packageName = "de.javagl.jgltf.impl.v2";
         File outputDirectory = new File("./data/output/");
         
         generate(rootUri, packageName, headerCode, outputDirectory);

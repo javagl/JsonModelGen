@@ -357,10 +357,10 @@ public final class SchemaGenerator
      *   <li>{@link Schema#setId(String)}</li>
      *   <li>{@link Schema#setFormat(String)}</li>
      *   <li>{@link Schema#setDefaultString(String)}</li>
-     *   <li>{@link Schema#setAllOf(List)</li>
-     *   <li>{@link Schema#setAnyOf(List)</li>
-     *   <li>{@link Schema#setOneOf(List)</li>
-     *   <li>{@link Schema#setNot(Schema)</li>
+     *   <li>{@link Schema#setAllOf(List)}</li>
+     *   <li>{@link Schema#setAnyOf(List)}</li>
+     *   <li>{@link Schema#setOneOf(List)}</li>
+     *   <li>{@link Schema#setNot(Schema)}</li>
      * </ul>
      * <br>
      * <b>Note:</b> The following properties are not processed yet:

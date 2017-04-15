@@ -135,7 +135,7 @@ public class SchemaGeneratorUtils
      * 
      * @param uri The base URI of the schema
      * @param node The node
-     * @param propertyNodeItemName The name for the node
+     * @param subSchemaFragment The sub-schema fragment 
      * @param schemaResolver The function that can resolve schemas for a
      * given URI
      * @return The resolved schema
