@@ -424,7 +424,7 @@ public final class SchemaGenerator
             List<Schema> subSchemas =
                 SchemaGeneratorUtils.getSubSchemas(
                     uri, node, "anyOf", schemaResolver);
-            schema.setAllOf(subSchemas);
+            schema.setAnyOf(subSchemas);
             if (schema.getTypeStrings() == null)
             {
                 log("NOTE: processSchema: anyOf overwrites empty types of parent");
@@ -435,7 +435,7 @@ public final class SchemaGenerator
             List<Schema> subSchemas =
                 SchemaGeneratorUtils.getSubSchemas(
                     uri, node, "oneOf", schemaResolver);
-            schema.setAllOf(subSchemas);
+            schema.setOneOf(subSchemas);
             if (schema.getTypeStrings() == null)
             {
                 log("NOTE: processSchema: oneOf overwrites empty types of parent");
