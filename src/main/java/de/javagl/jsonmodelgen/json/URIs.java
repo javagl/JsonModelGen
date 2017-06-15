@@ -40,7 +40,7 @@ public class URIs
      * <pre><code>
      * appendToFragment("uri", "newFragment") = "uri#/newFragment"
      * appendToFragment("uri#xyz", "newFragment") = "uri#xyz/newFragment"
-     * <code></pre>
+     * </code></pre>
      * 
      * @param uri The URI
      * @param string The string to append
