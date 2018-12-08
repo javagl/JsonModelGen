@@ -9,8 +9,8 @@ other libraries.
 
 The goal of this project mainly was to create a code model for 
 [glTF](https://github.com/KhronosGroup/glTF/), with the purpose
-of reading basic glTF files for testing my [Rendering](https://github.com/javagl/Rendering)
-library. This library only supports the 
+of creating a basic data model for [JglTF](https://github.com/javagl/JglTF). 
+This library only supports the 
 [JSON Schema Version 03](https://tools.ietf.org/html/draft-zyp-json-schema-03),
 which was used for the specification of glTF, and only the parts of the
 schema that are relevant for glTF. The library generates a reasonable model 
@@ -27,7 +27,7 @@ validation statements, based on the constraints that are stated in the
 Schema definition. 
 
 For example, the following excerpt from the 
-[glTF camera.perspective.schema.json](https://github.com/KhronosGroup/glTF/blob/master/specification/schema/camera.perspective.schema.json)
+[glTF camera.perspective.schema.json](https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/schema/camera.perspective.schema.json)
 
 ```javascript
 {
