@@ -524,6 +524,11 @@ public class ClassGenerator
                     SchemaUtils.createShortSchemaDebugString(extendedSchema));
                 return typeResolver.apply(extendedSchema);
             }
+            else
+            {
+                logger.warning("Found allOf with size !=1 in "
+                    + SchemaUtils.createShortSchemaDebugString(objectSchema));
+            }
         }
         
         // In some cases (like glTF), extensible enumerations are modeled
