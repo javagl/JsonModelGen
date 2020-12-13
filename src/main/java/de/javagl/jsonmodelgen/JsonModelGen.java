@@ -58,18 +58,23 @@ public class JsonModelGen
         LoggerUtil.initLogging();
         Locale.setDefault(Locale.ENGLISH);
         
+        generateGlTF();
+    }
+    
+    /**
+     * Performs the actual generation
+     * 
+     * @throws Exception If an error occurs
+     */
+    private static void generateGlTF() throws Exception
+    {
+        String urlString = "https://raw.githubusercontent.com/KhronosGroup/"
+            + "glTF/master/specification/2.0/schema/glTF.schema.json";
         String headerCode = createHeaderCode("glTF JSON model"); 
-        //String urlString = "https://raw.githubusercontent.com/KhronosGroup/glTF/" + 
-        //    "master/specification/1.1/schema/glTF.schema.json";
-        String urlString = "https://raw.githubusercontent.com/KhronosGroup/glTF/2.0/specification/2.0/schema/glTF.schema.json";
-        
-        //String s = "file:/C:/Develop/KhronosGroup/glTF/extensions/Khronos/" + 
-        //    "KHR_technique_webgl/schema/glTF.KHR_technique_webgl.schema.json";
-
-        URI rootUri = new URI(urlString);
         String packageName = "de.javagl.jgltf.impl.v2";
-        File outputDirectory = new File("./data/output/");
         
+        URI rootUri = new URI(urlString);
+        File outputDirectory = new File("./data/output/");
         generate(rootUri, packageName, headerCode, outputDirectory);
     }
     
@@ -120,7 +125,7 @@ public class JsonModelGen
             " * \n" +
             " * Do not modify this class. It is automatically generated\n" +
             " * with JsonModelGen (https://github.com/javagl/JsonModelGen)\n" +
-            " * Copyright (c) 2016 Marco Hutter - http://www.javagl.de\n" +
+            " * Copyright (c) 2020 Marco Hutter - http://www.javagl.de\n" +
             " */\n";
         return headerCode;
     }

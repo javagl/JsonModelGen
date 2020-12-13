@@ -51,15 +51,18 @@ public class SchemaUtils
     {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
-        int n = 0;
-        for (Schema schema : schemas)
+        if (schemas != null)
         {
-            if (n > 0)
+            int n = 0;
+            for (Schema schema : schemas)
             {
-                sb.append(", ");
+                if (n > 0)
+                {
+                    sb.append(", ");
+                }
+                sb.append(createShortSchemaDebugString(schema));
+                n++;
             }
-            sb.append(createShortSchemaDebugString(schema));
-            n++;
         }
         sb.append("]");
         return sb.toString();

@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -143,6 +144,8 @@ public class NodeRepository
         generateNodes(rootUri, rootNode);
     }
     
+    Set<URI> xxx = new LinkedHashSet<URI>();
+    
     /**
      * Generate the nodes that start at the given URI, with the given node
      * that was parsed from the given URI
@@ -154,7 +157,13 @@ public class NodeRepository
     {
         uri = uri.normalize();
         
-        //logger.info("Generate nodes for "+uri);
+        logger.info("Generate nodes      for "+uri);
+        
+        if (uriToNode.containsKey(uri)) 
+        {
+            logger.info("Node already known for  "+uri);
+            return;
+        }
         
         log("generateNodes");
         log("    uri "+uri);
@@ -165,6 +174,8 @@ public class NodeRepository
         logIndent++;
         generateSubNodes(uri, node);
         logIndent--;
+        
+        logger.info("Generate nodes DONE for "+uri);
     }
     
     /**

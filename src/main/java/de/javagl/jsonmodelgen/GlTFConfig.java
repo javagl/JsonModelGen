@@ -38,4 +38,5 @@ public class GlTFConfig
 {
     public static boolean CREATE_ADDERS_AND_REMOVERS = true;
     public static boolean CREATE_GETTERS_WITH_DEFAULT = true;
+    public static boolean REMOVE_ADDITIONAL_PROPERTIES = true;
 }

@@ -32,9 +32,11 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -118,7 +120,22 @@ public class ClassGenerator
         @Override
         public JType createObjectType(ObjectSchema schema)
         {
-            return doCreateObjectType(schema);
+            if (!containsRelevantInformation(schema))
+            {
+                return doCreateObjectTypeFromExtended(schema);
+            }
+            List<URI> uris = schemaGenerator.getUris(schema);
+            String className =
+                classNameGenerator.generateClassName(schema, uris);
+            JDefinedClass definedClass =
+                resolveDefinedClass(schema, className, ClassType.CLASS);
+            if (!pendingTypes.contains(schema))
+            {
+                pendingTypes.add(schema);
+                initializeObjectType(definedClass, schema);
+                pendingTypes.remove(schema);
+            }
+            return definedClass;
         }
 
         @Override
@@ -131,11 +148,10 @@ public class ClassGenerator
             // to be written without trailing ".0" decimals when they
             // are serialized to JSON. 
             // See https://github.com/KhronosGroup/glTF-Validator/issues/8
-            logger.warning("Using fixed translation to Number[] for accessor min/max");
-            
             if (schema.getId().endsWith("accessor.schema.json#/properties/min") ||
                 schema.getId().endsWith("accessor.schema.json#/properties/max"))
             {
+                logger.warning("Using fixed translation to Number[] for accessor min/max");
                 return codeModel.ref(Number.class).array(); 
             }
             return doCreateArrayType(schema);
@@ -169,7 +185,14 @@ public class ClassGenerator
     /**
      * The function that creates CodeModel types for the {@link Schema} types
      */
-    private TypeCreator typeCreator = new DefaultTypeCreator();
+    private final TypeCreator typeCreator;
+    
+    /**
+     * The set of {@link Schema} instances for which the type is currently
+     * being constructed, used to resolve types that directly or indirectly
+     * refer to them self.
+     */
+    private final Set<Schema> pendingTypes;
 
     /**
      * The {@link SchemaGenerator} which generated the {@link Schema} for
@@ -180,7 +203,7 @@ public class ClassGenerator
     /**
      * The code model that will be used to create the classes
      */
-    private final JCodeModel codeModel = new JCodeModel();
+    private final JCodeModel codeModel;
 
     /**
      * The package name that should be used for the generated classes
@@ -213,8 +236,11 @@ public class ClassGenerator
         this.schemaGenerator = schemaGenerator;
         this.packageName = packageName;
         this.headerCode = headerCode;
+        this.typeCreator = new DefaultTypeCreator();
+        this.pendingTypes = new LinkedHashSet<Schema>();
         this.typeResolver = this::doResolveType;
-
+        this.codeModel = new JCodeModel();
+        
         types = new LinkedHashMap<Schema, JType>();
 
         Schema schema = schemaGenerator.getRootSchema();
@@ -275,7 +301,17 @@ public class ClassGenerator
         }
         return packageName+"."+className;
     }
-
+    
+    int indent = 0;
+    private String ind()
+    {
+        String s = "";
+        for (int i=0; i<indent;i++)
+        {
+            s+= " ";
+        }
+        return s;
+    }
     /**
      * Try to resolve the type that is described by the given {@link Schema}.
      * If the type already has been created, it will be returned. Otherwise,
@@ -287,9 +323,13 @@ public class ClassGenerator
      */
     private JType doResolveType(Schema schema)
     {
+        System.out.println(ind()+"Resolve "+schema.getTitle());
+        indent+=4;
+        
         JType type = types.get(schema);
         if (type != null)
         {
+            indent-=4;
             return type;
         }
 
@@ -304,6 +344,7 @@ public class ClassGenerator
 
         type = typeCreator.createType(schema);
         types.put(schema, type);
+        indent-=4;
         return type;
     }
 
@@ -378,12 +419,14 @@ public class ClassGenerator
 
 
     /**
-     * Create the code model type for the given {@link ObjectSchema}
+     * Initialize the code model type for the given {@link ObjectSchema}
      *
+     * @param definedClass The code model class
      * @param objectSchema The {@link ObjectSchema}
      * @return The type
      */
-    private JType doCreateObjectType(ObjectSchema objectSchema)
+    private JType initializeObjectType(
+        JDefinedClass definedClass, ObjectSchema objectSchema)
     {
         if (logger.isLoggable(creatingLogLevel))
         {
@@ -397,32 +440,13 @@ public class ClassGenerator
 //        boolean debug = true;
 //        if (debug)
 //        {
-//            logger.info("    Schema details:");
-//            URI uri = schemaGenerator.getCanonicalUri(objectSchema);
-//            logger.info(SchemaUtils.createSchemaDebugString(uri, objectSchema));
-//        }
-
-        if (!containsRelevantInformation(objectSchema))
-        {
-            return doCreateObjectTypeFromExtended(objectSchema);
-        }
-
-        List<URI> uris = schemaGenerator.getUris(objectSchema);
-        String className =
-            classNameGenerator.generateClassName(objectSchema, uris);
-
-//        if (debug)
-//        {
 //            logger.info("    className "+className);
 //            logger.info("    Schema details:");
 //            URI uri = schemaGenerator.getCanonicalUri(objectSchema);
 //            logger.info(SchemaUtils.createSchemaDebugString(uri, objectSchema));
 //        }
 
-        JDefinedClass definedClass =
-            resolveDefinedClass(objectSchema, className, ClassType.CLASS);
         handleObjectTypeExtended(definedClass, objectSchema);
-
         handleObjectTypeProperties(objectSchema, definedClass);
         handleObjectTypeAdditionalProperties(objectSchema, definedClass);
 

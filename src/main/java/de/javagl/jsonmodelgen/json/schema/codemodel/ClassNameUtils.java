@@ -32,6 +32,8 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import de.javagl.jsonmodelgen.GlTFConfig;
+
 
 /**
  * Utility methods for deriving class names from a collection of URIs.
@@ -132,8 +134,11 @@ public class ClassNameUtils
         String uriString = uri.toString();
         
         // TODO These are somewhat specific - handle this differently?
-        uriString = uriString.replaceAll("/properties", "");
-        uriString = uriString.replaceAll("/additionalProperties", "");
+        if (GlTFConfig.REMOVE_ADDITIONAL_PROPERTIES)
+        {
+            uriString = uriString.replaceAll("/properties", "");
+            uriString = uriString.replaceAll("/additionalProperties", "");
+        }
         
         int lastGlobalHashIndex = uriString.lastIndexOf("#");
         int lastSlashIndex = 0;
