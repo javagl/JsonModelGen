@@ -125,7 +125,8 @@ public class ClassGenerator
         @Override
         public JType createObjectType(ObjectSchema schema)
         {
-            if (!containsRelevantInformation(schema))
+            if (!containsRelevantInformation(schema) &&
+                !usesImplicitExtension(schema))
             {
                 return doCreateObjectTypeFromExtended(schema);
             }
@@ -442,10 +443,31 @@ public class ClassGenerator
 //            logger.info(SchemaUtils.createSchemaDebugString(uri, objectSchema));
 //        }
 
-        handleObjectTypeExtended(definedClass, objectSchema);
-        handleObjectTypeProperties(objectSchema, definedClass);
-        handleObjectTypeAdditionalProperties(objectSchema, definedClass);
-
+        // Handle this "implicit extension" workaround. This is somewhat
+        // brittle, but the check method already prints a warning...
+        if (usesImplicitExtension(objectSchema))
+        {
+            List<Schema> allOf = objectSchema.getAllOf();
+            Schema probableBaseClass = allOf.get(0);
+            ObjectSchema probableExtension = allOf.get(1).asObject();
+            JType extendedType = typeResolver.apply(probableBaseClass);
+            if (extendedType instanceof JClass)
+            {
+                JClass extendedClass = (JClass)extendedType;
+                definedClass._extends(extendedClass);
+            }
+            handleObjectTypeProperties(probableExtension, definedClass);
+            handleObjectTypeAdditionalProperties(
+                probableExtension, definedClass);
+        } 
+        else
+        {
+            handleObjectTypeExtended(definedClass, objectSchema);
+            handleObjectTypeProperties(objectSchema, definedClass);
+            handleObjectTypeAdditionalProperties(objectSchema, definedClass);
+        }
+        handleDefinitions(objectSchema, definedClass);
+        
         return definedClass;
     }
 
@@ -465,6 +487,47 @@ public class ClassGenerator
             objectSchema.getProperties() != null ||
             objectSchema.getPatternProperties() != null ||
             objectSchema.getDependencies() != null;
+    }
+    
+    /**
+     * Check whether the given {@link ObjectSchema} uses the "implicit 
+     * extension" mechanism.
+     * 
+     * People applied tricky workarounds to model extensions in the JSON 
+     * schema. Among them being constructs like
+     * <pre><code>
+     * "allOf" : [{
+     *   "$ref" : "parent.schema.json"
+     * }, {
+     *   "properties" : {
+     *      ...
+     *    }
+     * }]     
+     * <pre><code>
+     * where <code>allOf</code> referred to the parent class, but the 
+     * properties had been added via an "anonymous" object schema.
+     *  
+     * This method checks whether this pattern can be found here, but
+     * only by checking whether there are two elements in allOf,
+     * and return true (and prints a warning) if this is the case.
+     * 
+     * @param objectSchema The {@link ObjectSchema}
+     * @return Whether the implicit extension is used
+     */
+    private static boolean usesImplicitExtension(ObjectSchema objectSchema)
+    {
+        List<Schema> allOf = objectSchema.getAllOf();
+        if (allOf == null)
+        {
+            return false;
+        }
+        if (allOf.size() != 2)
+        {
+            return false;
+        }
+        logger.warning("Assuming implicit extension due to allOf with size 2 "
+            + "in " + SchemaUtils.createShortSchemaDebugString(objectSchema));
+        return true;
     }
 
 
@@ -508,6 +571,39 @@ public class ClassGenerator
                 typedMapType, additionalPropertiesSchema, false);
         }
     }
+    
+    
+    /**
+     * If the given {@link ObjectSchema} has
+     * {@link ObjectSchema#getDefinitions()}, then this method will add
+     * new static inner types to the given class
+     *
+     * @param objectSchema The {@link ObjectSchema}
+     * @param definedClass The target class
+     */
+    private void handleDefinitions(
+        ObjectSchema objectSchema, JDefinedClass definedClass)
+    {
+        Map<String, Schema> definitions = objectSchema.getDefinitions();
+        if (definitions == null)
+        {
+            return;
+        }
+        for (Entry<String, Schema> entry : definitions.entrySet())
+        {
+            String definitionName = entry.getKey();
+            //Schema definitionSchema = entry.getValue();
+
+            // TODO Definitions should probably become inner types. But
+            // this is currently not supported, and rarely used in 
+            // existing JSON schemas
+            logger.warning("Definition with name " + definitionName + " in " 
+                + SchemaUtils.createShortSchemaDebugString(objectSchema) 
+                + "is not handled yet");
+
+        }
+    }
+    
 
     /**
      * Assuming that the given {@link ObjectSchema} does not contain
@@ -618,8 +714,9 @@ public class ClassGenerator
      * 
      * @deprecated There is no real "inheritance" in JSON schemas. 
      * See http://stackoverflow.com/questions/27410216/json-schema-and-inheritance
-     * For backward compatibility
-     * 
+     * For backward compatibility, this method tries to handle the different
+     * approaches that have been used to handle inheritance in existing 
+     * schemas.
      */
     private void handleObjectTypeExtended(JDefinedClass definedClass,
         ObjectSchema objectSchema)
@@ -831,10 +928,8 @@ public class ClassGenerator
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH));
         docComment.append(sb.toString());
-
     }
-
-
+    
     /**
      * Create the initializer expression for the initialization of the
      * field that is created for the given property {@link Schema}

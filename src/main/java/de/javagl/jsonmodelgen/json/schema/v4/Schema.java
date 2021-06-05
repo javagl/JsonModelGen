@@ -27,6 +27,7 @@
 package de.javagl.jsonmodelgen.json.schema.v4;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -94,7 +95,7 @@ public class Schema
     /**
      * See {@link #getDefinitions()}
      */
-    private List<Schema> definitions;
+    private Map<String, Schema> definitions;
     
     /**
      * See {@link #getFormat()}
@@ -482,7 +483,7 @@ public class Schema
      *
      * @return The value
      */
-    public List<Schema> getDefinitions()
+    public Map<String, Schema> getDefinitions()
     {
         return definitions;
     }
@@ -492,7 +493,7 @@ public class Schema
      *
      * @param definitions The value
      */
-    public void setDefinitions(List<Schema> definitions)
+    public void setDefinitions(Map<String, Schema> definitions)
     {
         this.definitions = definitions;
     }

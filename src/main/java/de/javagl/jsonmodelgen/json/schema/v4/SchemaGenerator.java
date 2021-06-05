@@ -228,7 +228,7 @@ public final class SchemaGenerator
             ObjectSchema schema = new ObjectSchema();
             schema.setId(uri.toString());
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemas(
+                SchemaGeneratorUtils.getSubSchemasArray(
                     uri, node, "allOf", schemaResolver);
             Set<String> allTypeStrings = new LinkedHashSet<String>();
             for (Schema subSchema : subSchemas)
@@ -249,7 +249,7 @@ public final class SchemaGenerator
             ObjectSchema schema = new ObjectSchema();
             schema.setId(uri.toString());
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemas(
+                SchemaGeneratorUtils.getSubSchemasArray(
                     uri, node, "anyOf", schemaResolver);
             Set<String> allTypeStrings = new LinkedHashSet<String>();
             for (Schema subSchema : subSchemas)
@@ -270,7 +270,7 @@ public final class SchemaGenerator
             ObjectSchema schema = new ObjectSchema();
             schema.setId(uri.toString());
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemas(
+                SchemaGeneratorUtils.getSubSchemasArray(
                     uri, node, "oneOf", schemaResolver);
             Set<String> allTypeStrings = new LinkedHashSet<String>();
             for (Schema subSchema : subSchemas)
@@ -286,9 +286,6 @@ public final class SchemaGenerator
         JsonNode notNode = node.get("not");
         if (notNode != null)
         {
-            // TODO : Handle the "not" node
-            logger.warning("A \"not\" node is not handled yet");
-            
             ObjectSchema schema = new ObjectSchema();
             schema.setId(uri.toString());
             Schema subSchema =
@@ -361,12 +358,9 @@ public final class SchemaGenerator
      *   <li>{@link Schema#setAnyOf(List)}</li>
      *   <li>{@link Schema#setOneOf(List)}</li>
      *   <li>{@link Schema#setNot(Schema)}</li>
+     *   <li>{@link Schema#setDefinitions(List)}</li>
      * </ul>
      * <br>
-     * <b>Note:</b> The following properties are not processed yet:
-     * <ul>
-     *   <li>definitions</li>
-     * </ul>
      *
      * @param uri The URI
      * @param schema The {@link StringSchema}
@@ -411,7 +405,7 @@ public final class SchemaGenerator
         if (node.has("allOf"))
         {
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemas(
+                SchemaGeneratorUtils.getSubSchemasArray(
                     uri, node, "allOf", schemaResolver);
             schema.setAllOf(subSchemas);
             if (schema.getTypeStrings() == null)
@@ -422,7 +416,7 @@ public final class SchemaGenerator
         if (node.has("anyOf"))
         {
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemas(
+                SchemaGeneratorUtils.getSubSchemasArray(
                     uri, node, "anyOf", schemaResolver);
             schema.setAnyOf(subSchemas);
             if (schema.getTypeStrings() == null)
@@ -433,7 +427,7 @@ public final class SchemaGenerator
         if (node.has("oneOf"))
         {
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemas(
+                SchemaGeneratorUtils.getSubSchemasArray(
                     uri, node, "oneOf", schemaResolver);
             schema.setOneOf(subSchemas);
             if (schema.getTypeStrings() == null)
@@ -443,25 +437,18 @@ public final class SchemaGenerator
         }
         if (node.has("not"))
         {
-            // TODO : Handle "not" node
-            log("NOTE: processSchema: \"not\" is not yet handled");
             Schema subSchema =
                 SchemaGeneratorUtils.getSubSchema(
                     uri, node.get("not"), "not", schemaResolver);
             schema.setNot(subSchema);
         }
-        
-        
         if (node.has("definitions"))
         {
-            // XXX definitions are not handled yet
-            logger.warning("definitions are not handled yet");
-
-            //JsonNode definitionsNode = node.get("definitions");
-            log("processSchema WARNING: does not handle definitions");
-            log("    uri    "+uri);
+            Map<String, Schema> subSchemas =
+                SchemaGeneratorUtils.getSubSchemasMap(
+                    uri, node, "definitions", schemaResolver);
+            schema.setDefinitions(subSchemas);
         }
-
 
 
         // XXX TODO Somehow detect unknown field names

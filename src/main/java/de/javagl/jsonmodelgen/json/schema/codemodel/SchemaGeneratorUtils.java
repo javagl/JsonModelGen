@@ -28,7 +28,10 @@ package de.javagl.jsonmodelgen.json.schema.codemodel;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
@@ -74,7 +77,7 @@ public class SchemaGeneratorUtils
      * given URI
      * @return The resolved schemas
      */
-    public static <S> List<S> getSubSchemas(
+    public static <S> List<S> getSubSchemasArray(
         URI uri, JsonNode node, String propertyName, 
         Function<URI, S> schemaResolver)
     {
@@ -112,6 +115,79 @@ public class SchemaGeneratorUtils
             else
             {
                 subSchemas.add(subSchema);
+            }
+        }
+        return subSchemas;
+    }
+
+    /**
+     * Returns the schemas that are referred to from the specified
+     * property of the given node. This assumes that the given node contains
+     * a property with the given name that refers to an dictionary of nodes.
+     * These nodes must either contain <code>"$ref"</code> properties that 
+     * contain (relative) URIs, or standalone schema definitions that 
+     * contain an explicit <code>"type" : [ ... ]</code> property with a list 
+     * of type strings.<br>  
+     * <br>
+     * If a reference or is present, it is resolved against the given base 
+     * URI and passed to the given schema resolver for resolution.<br>
+     * <br> 
+     * If a standalone schema is present, then the fragment of the given
+     * URI is extended with a fragment that is derived from the given 
+     * propertyName, and the resulting URI is passed to the given schema 
+     * resolver for resolution.<br>
+     * <br>
+     * Otherwise, a warning is printed and <code>null</code> is returned.
+     * 
+     * @param uri The base URI of the schema
+     * @param node The node
+     * @param propertyName The name of the property that contains a dictionary
+     * of references
+     * @param schemaResolver The function that can resolve schemas for a
+     * given URI
+     * @return The resolved schemas
+     */
+    public static <S> Map<String, S> getSubSchemasMap(
+        URI uri, JsonNode node, String propertyName, 
+        Function<URI, S> schemaResolver)
+    {
+        JsonNode propertyNode = node.get(propertyName);
+        if (propertyNode == null)
+        {
+            logger.warning("getSubSchemas: Found no "+propertyName+" node");
+            logger.warning("    node         "+node);
+            return null;
+        }
+        
+        if (!propertyNode.isObject())
+        {
+            logger.warning("getSubSchemas: The "+propertyName+" node is no object");
+            logger.warning("    node         "+node);
+            logger.warning("    propertyNode "+propertyNode);
+            return null;
+        }
+        
+        
+        Map<String, S> subSchemas = new LinkedHashMap<String, S>();
+        Iterator<String> fieldNames = propertyNode.fieldNames();
+        while (fieldNames.hasNext())
+        {
+            String fieldName = fieldNames.next();
+            String propertyNodeItemName = propertyName+"/"+fieldName;
+            JsonNode propertyNodeItem = propertyNode.get(fieldName);
+            S subSchema = getSubSchema(uri, propertyNodeItem, 
+                propertyNodeItemName, schemaResolver);
+            if (subSchema == null)
+            {
+                logger.warning("getSubSchemas: The " + propertyName + " element " + 
+                    propertyNodeItemName + " did not define a schema");
+                logger.warning("    node             "+node);
+                logger.warning("    propertyNode     "+propertyNode);
+                logger.warning("    propertyNodeItem "+propertyNode);
+            }
+            else
+            {
+                subSchemas.put(fieldName, subSchema);
             }
         }
         return subSchemas;
