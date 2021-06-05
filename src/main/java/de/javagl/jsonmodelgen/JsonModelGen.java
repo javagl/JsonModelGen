@@ -125,7 +125,7 @@ public class JsonModelGen
             " * \n" +
             " * Do not modify this class. It is automatically generated\n" +
             " * with JsonModelGen (https://github.com/javagl/JsonModelGen)\n" +
-            " * Copyright (c) 2020 Marco Hutter - http://www.javagl.de\n" +
+            " * Copyright (c) 2016 Marco Hutter - http://www.javagl.de\n" +
             " */\n";
         return headerCode;
     }
