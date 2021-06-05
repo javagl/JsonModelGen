@@ -563,24 +563,42 @@ public class ClassGenerator
         //   ...
         //   { "type": "integer" }
         // ]
-        // Try to find the ONE element that contains the type information.
+        // And sometimes (after some update), the elements contain type 
+        // information as well. 
         List<Schema> anyOf = objectSchema.getAnyOf();
         if (anyOf != null)
         {
-            Schema nonObjectSchema = SchemaCodeUtils.determineTypeFromAnyOf(objectSchema);
-            if (nonObjectSchema == null)
+            // Try to find the COMMON type of all elements
+            Schema commonTypeSchema = 
+                SchemaCodeUtils.determineCommonTypeFromAnyOf(objectSchema);
+            if (commonTypeSchema != null)
             {
-                logger.warning("The schema "+
+                logger.info("The schema "+
                     SchemaUtils.createShortSchemaDebugString(objectSchema)+
-                    " uses 'anyOf', but could not derive any"+
-                    " type information. Using Object.");
+                    " uses 'anyOf'. Using the common information from one of"+
+                    " its sub-schemas: "+
+                    SchemaUtils.createShortSchemaDebugString(commonTypeSchema));
+                return doCreateType(commonTypeSchema);
             }
-            logger.info("The schema "+
-                SchemaUtils.createShortSchemaDebugString(objectSchema)+
-                " uses 'anyOf'. Using the type information from one of"+
-                " its sub-schemas: "+
-                SchemaUtils.createShortSchemaDebugString(nonObjectSchema));
-            return doCreateType(nonObjectSchema);
+            
+            // If there is no COMMON type, try to find the single one
+            // that may contain the type information:
+            Schema nonObjectSchema = 
+                SchemaCodeUtils.determineTypeFromUntypedAnyOf(objectSchema);
+            if (nonObjectSchema != null)
+            {
+                logger.info("The schema "+
+                    SchemaUtils.createShortSchemaDebugString(objectSchema)+
+                    " uses 'anyOf'. Using the type information from one of"+
+                    " its sub-schemas: "+
+                    SchemaUtils.createShortSchemaDebugString(nonObjectSchema));
+                return doCreateType(nonObjectSchema);
+            }
+            
+            logger.warning("Could not determine type from anyOf in "+
+                SchemaUtils.createShortSchemaDebugString(objectSchema) +
+                ", using Object");
+            return codeModel._ref(Object.class);
         }
         
 

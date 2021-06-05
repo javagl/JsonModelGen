@@ -30,9 +30,11 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import de.javagl.jsonmodelgen.json.schema.v4.ObjectSchema;
 import de.javagl.jsonmodelgen.json.schema.v4.Schema;
+import de.javagl.jsonmodelgen.json.schema.v4.SchemaUtils;
 
 /**
  * Utility methods related to {@link Schema} instances, mainly intended
@@ -40,6 +42,45 @@ import de.javagl.jsonmodelgen.json.schema.v4.Schema;
  */
 class SchemaCodeUtils
 {
+    /**
+     * The logger used in this class
+     */
+    private static final Logger logger =
+        Logger.getLogger(SchemaCodeUtils.class.getName());
+    
+    /**
+     * If the given {@link Schema} contains 
+     * {@link Schema#getAnyOf() anyOf} information, then this method
+     * will check the {@link Schema#getTypeStrings()} of all elements. If 
+     * there is a common type, then the first element of the <code>anyOf</code>
+     * list will be returned. Otherwise, <code>null</code> will be returned.
+     * 
+     * @param schema The {@link Schema}
+     * @return The first of the anyOf-Schemas if they have a common type,
+     * or <code>null</code> otherwise.
+     */
+    static Schema determineCommonTypeFromAnyOf(Schema schema)
+    {
+        List<Schema> anyOf = schema.getAnyOf();
+        if (anyOf == null)
+        {
+            return null;
+        }
+        Set<String> typeStrings = new LinkedHashSet<String>();
+        for (Schema anyOfSchema : anyOf)
+        {
+            typeStrings.addAll(anyOfSchema.getTypeStrings());
+        }
+        if (typeStrings.size() != 1)
+        {
+            logger.warning("Multiple types in anyOf: " + typeStrings
+                + " for " + SchemaUtils.createShortSchemaDebugString(schema));
+            return null;
+        }
+        return anyOf.get(0);
+    }
+    
+    
     /**
      * If the given {@link Schema} contains 
      * {@link Schema#getAnyOf() anyOf} information, then this method
@@ -51,7 +92,7 @@ class SchemaCodeUtils
      * @return The element of the anyOf-Schemas that is NOT an 
      * {@link ObjectSchema}
      */
-    static Schema determineTypeFromAnyOf(Schema schema)
+    static Schema determineTypeFromUntypedAnyOf(Schema schema)
     {
         List<Schema> anyOf = schema.getAnyOf();
         if (anyOf == null)
@@ -65,6 +106,8 @@ class SchemaCodeUtils
             {
                 if (nonObjectSchema != null)
                 {
+                    logger.warning("Multiple non-object types in anyOf for "
+                        + SchemaUtils.createShortSchemaDebugString(schema));
                     return null;
                 }
                 nonObjectSchema = anyOfSchema;
