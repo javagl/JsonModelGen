@@ -93,6 +93,11 @@ public class ClassGenerator
     private static final Level creatingLogLevel = Level.FINE;
 
     /**
+     * An indentation level for log messages
+     */
+    private int resolvingLogIndent = 0;
+
+    /**
      * The {@link ClassNameGenerator} that will generate the names
      * of classes for {@link ObjectSchema} instances
      */
@@ -302,16 +307,6 @@ public class ClassGenerator
         return packageName+"."+className;
     }
     
-    int indent = 0;
-    private String ind()
-    {
-        String s = "";
-        for (int i=0; i<indent;i++)
-        {
-            s+= " ";
-        }
-        return s;
-    }
     /**
      * Try to resolve the type that is described by the given {@link Schema}.
      * If the type already has been created, it will be returned. Otherwise,
@@ -323,13 +318,14 @@ public class ClassGenerator
      */
     private JType doResolveType(Schema schema)
     {
-        System.out.println(ind()+"Resolve "+schema.getTitle());
-        indent+=4;
+        logger.log(resolvingLogLevel,
+            indent(resolvingLogIndent) + "Resolve " + schema.getTitle());
+        resolvingLogIndent+=4;
         
         JType type = types.get(schema);
         if (type != null)
         {
-            indent-=4;
+            resolvingLogIndent-=4;
             return type;
         }
 
@@ -344,7 +340,7 @@ public class ClassGenerator
 
         type = typeCreator.createType(schema);
         types.put(schema, type);
-        indent-=4;
+        resolvingLogIndent-=4;
         return type;
     }
 
@@ -745,7 +741,8 @@ public class ClassGenerator
 
             if (isInheritedProperty(objectSchema, propertyName))
             {
-                logger.info("Skipping inherited property \"" + propertyName + "\" in " + objectSchema.getId());
+                logger.info("Skipping inherited property \"" + propertyName
+                    + "\" in " + objectSchema.getId());
                 continue;
             }
             
@@ -943,4 +940,20 @@ public class ClassGenerator
     }
 
 
+    /**
+     * Create an empty string with the given length. 
+     * Only used for log indentation.
+     * 
+     * @param n The length
+     * @return The string
+     */
+    private static String indent(int n)
+    {
+        String s = "";
+        for (int i = 0; i < n; i++)
+        {
+            s += " ";
+        }
+        return s;
+    }
 }
