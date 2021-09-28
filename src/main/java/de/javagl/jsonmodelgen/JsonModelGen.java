@@ -33,8 +33,8 @@ import java.util.Locale;
 import java.util.logging.Logger;
 
 import de.javagl.jsonmodelgen.json.NodeRepository;
-import de.javagl.jsonmodelgen.json.schema.v4.SchemaGenerator;
-import de.javagl.jsonmodelgen.json.schema.v4.codemodel.ClassGenerator;
+import de.javagl.jsonmodelgen.json.schema.v202012.SchemaGenerator;
+import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGenerator;
 
 /**
  * Main class of the JSON model generator
@@ -59,6 +59,7 @@ public class JsonModelGen
         Locale.setDefault(Locale.ENGLISH);
         
         generateGlTF();
+        //generateTiles();
     }
     
     /**
@@ -77,6 +78,45 @@ public class JsonModelGen
         File outputDirectory = new File("./data/output/");
         generate(rootUri, packageName, headerCode, outputDirectory);
     }
+    
+    
+    
+    //--------------------------------------------------------------------------
+    // Experimental 3D Tiles generation
+    /**
+     * Performs the actual generation
+     * 
+     * @throws Exception If an error occurs
+     */
+    private static void generateTiles() throws Exception
+    {
+        //generateTiles("tileset.schema.json", ".impl");
+        generateTiles("i3dm.featureTable.schema.json", ".impl");
+        generateTiles("pnts.featureTable.schema.json", ".impl");
+    }
+    
+    /**
+     * Performs the actual generation
+     * 
+     * @throws Exception If an error occurs
+     */
+    private static void generateTiles(
+        String fileName, String packageNameSuffixStartingWithDot) 
+            throws Exception
+    {
+        String urlString = "https://raw.githubusercontent.com/CesiumGS/"
+            + "3d-tiles/master/specification/schema/" + fileName;
+        String headerCode = createHeaderCode("3D Tiles JSON model"); 
+        String packageName = 
+            "de.javagl.cesium.j3dtiles" + packageNameSuffixStartingWithDot;
+        
+        URI rootUri = new URI(urlString);
+        File outputDirectory = new File("./data/output/");
+        generate(rootUri, packageName, headerCode, outputDirectory);
+    }
+    //--------------------------------------------------------------------------
+    
+    
     
     /**
      * Generate the classes for the schema with the given root element,
@@ -125,7 +165,7 @@ public class JsonModelGen
             " * \n" +
             " * Do not modify this class. It is automatically generated\n" +
             " * with JsonModelGen (https://github.com/javagl/JsonModelGen)\n" +
-            " * Copyright (c) 2016 Marco Hutter - http://www.javagl.de\n" +
+            " * Copyright (c) 2016-2021 Marco Hutter - http://www.javagl.de\n" +
             " */\n";
         return headerCode;
     }
