@@ -459,8 +459,7 @@ class CodeModelValidations
         JExpression conditionExpression = null;
         for (String enumString : enumStrings)
         {
-            JExpression valueExpression = JExpr.lit(
-                enumString.substring(1, enumString.length()-1));
+            JExpression valueExpression = JExpr.lit(enumString);
             if (conditionExpression == null)
             {
                 conditionExpression =

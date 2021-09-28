@@ -161,13 +161,16 @@ class CodeModelDocs
         }
         if (propertySchema.getEnumStrings() != null)
         {
-            descriptionLines.add("Valid values: " + 
-                propertySchema.getEnumStrings());
-        } else {
-            List<String> nonObjectEnumStrings = SchemaCodeUtils.determineEnumStringsFromAnyOf(propertySchema);
-            if (nonObjectEnumStrings != null && !nonObjectEnumStrings.isEmpty()) {
-                descriptionLines.add("Valid values: " +
-                        nonObjectEnumStrings);
+            descriptionLines.add(
+                "Valid values: " + propertySchema.getEnumStrings());
+        }
+        else
+        {
+            List<String> nonObjectEnumStrings =
+                SchemaCodeUtils.determineEnumStringsFromAnyOf(propertySchema);
+            if (nonObjectEnumStrings != null && !nonObjectEnumStrings.isEmpty())
+            {
+                descriptionLines.add("Valid values: " + nonObjectEnumStrings);
             }
         }
         

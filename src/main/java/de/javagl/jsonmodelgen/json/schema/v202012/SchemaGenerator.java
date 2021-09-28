@@ -382,7 +382,7 @@ public final class SchemaGenerator
         if (schema.getId() == null)
         {
             schema.setId(
-                JsonUtils.getStringOptional(node, "id", null));
+                JsonUtils.getStringOptional(node, "$id", null));
         }
         schema.setFormat(
             JsonUtils.getStringOptional(node, "format", null));
@@ -400,6 +400,11 @@ public final class SchemaGenerator
         {
             schema.setEnumStrings(new LinkedHashSet<String>(
                 JsonUtils.getArrayAsStringsOptional(node, "enum", null)));
+        }
+        if (node.has("const"))
+        {
+            schema.setEnumStrings(Collections.singleton(
+                JsonUtils.getStringOptional(node, "const", null)));
         }
 
         if (node.has("allOf"))
