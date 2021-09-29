@@ -35,6 +35,7 @@ import java.util.logging.Logger;
 import de.javagl.jsonmodelgen.json.NodeRepository;
 import de.javagl.jsonmodelgen.json.schema.v202012.SchemaGenerator;
 import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGenerator;
+import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGeneratorConfig;
 
 /**
  * Main class of the JSON model generator
@@ -77,9 +78,7 @@ public class JsonModelGen
         URI rootUri = new URI(urlString);
         File outputDirectory = new File("./data/output/");
         generate(rootUri, packageName, headerCode, outputDirectory);
-    }
-    
-    
+    }    
     
     //--------------------------------------------------------------------------
     // Experimental 3D Tiles generation
@@ -90,9 +89,9 @@ public class JsonModelGen
      */
     private static void generateTiles() throws Exception
     {
-        //generateTiles("tileset.schema.json", ".impl");
-        generateTiles("i3dm.featureTable.schema.json", ".impl");
-        generateTiles("pnts.featureTable.schema.json", ".impl");
+        generateTiles("tileset.schema.json", ".impl");
+        //generateTiles("i3dm.featureTable.schema.json", ".impl");
+        //generateTiles("pnts.featureTable.schema.json", ".impl");
     }
     
     /**
@@ -108,7 +107,7 @@ public class JsonModelGen
             + "3d-tiles/master/specification/schema/" + fileName;
         String headerCode = createHeaderCode("3D Tiles JSON model"); 
         String packageName = 
-            "de.javagl.cesium.j3dtiles" + packageNameSuffixStartingWithDot;
+            "de.javagl.j3dtiles" + packageNameSuffixStartingWithDot;
         
         URI rootUri = new URI(urlString);
         File outputDirectory = new File("./data/output/");
@@ -116,7 +115,13 @@ public class JsonModelGen
     }
     //--------------------------------------------------------------------------
     
-    
+    private static ClassGeneratorConfig createGltfConfig()
+    {
+        ClassGeneratorConfig config = new ClassGeneratorConfig();
+        config.set(ClassGeneratorConfig.CREATE_ADDERS_AND_REMOVERS, true);
+        config.set(ClassGeneratorConfig.CREATE_GETTERS_WITH_DEFAULT, true);
+        return config;
+    }
     
     /**
      * Generate the classes for the schema with the given root element,
@@ -142,7 +147,8 @@ public class JsonModelGen
         
         logger.info("Creating ClassGenerator");
         ClassGenerator classGenerator = 
-            new ClassGenerator(schemaGenerator, packageName, headerCode);
+            new ClassGenerator(createGltfConfig(), 
+                schemaGenerator, packageName, headerCode);
         logger.info("Creating ClassGenerator DONE");
         
         logger.info("Creating classes");

@@ -66,7 +66,7 @@ public final class SchemaGenerator
     /**
      * The debug log level
      */
-    private static final Level level = Level.FINE;
+    private static final Level level = Level.INFO;
 
     /**
      * Debug logging utility method
