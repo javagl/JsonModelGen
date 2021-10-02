@@ -175,7 +175,8 @@ public class JsonModelGen
         config.addTypeOverride(
             ".*accessor.schema.json#/properties/max", Number[].class);
         
-        config.setSkippingValidation("TEMPPACKAGENAME.Image#mimeType", true);
+        config.setSkippingValidation(
+            "de.javagl.jgltf.impl.v2.Image#mimeType", true);
         
         return config;
     }
