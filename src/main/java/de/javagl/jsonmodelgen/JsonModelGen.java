@@ -29,6 +29,9 @@ package de.javagl.jsonmodelgen;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
 
@@ -60,84 +63,152 @@ public class JsonModelGen
         Locale.setDefault(Locale.ENGLISH);
         
         generateGlTF();
-        //generateTiles();
     }
     
     /**
-     * Performs the actual generation
+     * Generate the glTF classes from the schema
      * 
-     * @throws Exception If an error occurs
+     * @throws IOException If an IO error occurs
      */
-    private static void generateGlTF() throws Exception
+    private static void generateGlTF() throws IOException
     {
-        String urlString = "https://raw.githubusercontent.com/KhronosGroup/"
-            + "glTF/master/specification/2.0/schema/glTF.schema.json";
-        String headerCode = createHeaderCode("glTF JSON model"); 
-        String packageName = "de.javagl.jgltf.impl.v2";
+        String baseUrlString = 
+            "https://raw.githubusercontent.com/KhronosGroup/glTF/main/";
         
-        URI rootUri = new URI(urlString);
-        File outputDirectory = new File("./data/output/");
-        generate(rootUri, packageName, headerCode, outputDirectory);
-    }    
-    
-    //--------------------------------------------------------------------------
-    // Experimental 3D Tiles generation
-    /**
-     * Performs the actual generation
-     * 
-     * @throws Exception If an error occurs
-     */
-    private static void generateTiles() throws Exception
-    {
-        generateTiles("tileset.schema.json", ".impl");
-        //generateTiles("i3dm.featureTable.schema.json", ".impl");
-        //generateTiles("pnts.featureTable.schema.json", ".impl");
-    }
-    
-    /**
-     * Performs the actual generation
-     * 
-     * @throws Exception If an error occurs
-     */
-    private static void generateTiles(
-        String fileName, String packageNameSuffixStartingWithDot) 
-            throws Exception
-    {
-        String urlString = "https://raw.githubusercontent.com/CesiumGS/"
-            + "3d-tiles/master/specification/schema/" + fileName;
-        String headerCode = createHeaderCode("3D Tiles JSON model"); 
-        String packageName = 
-            "de.javagl.j3dtiles" + packageNameSuffixStartingWithDot;
+        GeneratorInput coreGeneratorInput = new GeneratorInput();
+        coreGeneratorInput.setUrlString(baseUrlString 
+            + "/specification/2.0/schema/glTF.schema.json");
+        coreGeneratorInput.setHeaderCode(
+            createHeaderCode("glTF JSON model")); 
+        coreGeneratorInput.setPackageName(
+            "de.javagl.jgltf.impl.v2");
         
-        URI rootUri = new URI(urlString);
-        File outputDirectory = new File("./data/output/");
-        generate(rootUri, packageName, headerCode, outputDirectory);
+        
+        List<GeneratorInput> generatorInputs = new ArrayList<GeneratorInput>();
+        generatorInputs.add(coreGeneratorInput);
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "mesh.primitive", "KHR_draco_mesh_compression"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_lights_punctual"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_materials_clearcoat"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_materials_ior"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_materials_pbrSpecularGlossiness"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_materials_sheen"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_materials_specular"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_materials_transmission"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_materials_unlit"));
+        // TODO No sensible output for now
+        //generatorInputs.add(createExtensionGeneratorInput(
+        //    baseUrlString, "glTF", "KHR_materials_variants"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_materials_volume"));
+        // TODO No schema
+        //generatorInputs.add(createExtensionGeneratorInput(
+        //    baseUrlString, "glTF", "KHR_mesh_quantization"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_techniques_webgl"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "texture", "KHR_texture_basisu"));
+        // TODO Different main file name
+        //generatorInputs.add(createExtensionGeneratorInput(
+        //    baseUrlString, "glTF", "KHR_texture_transform"));
+        // TODO Invalid field name
+        //generatorInputs.add(createExtensionGeneratorInput(
+        //    baseUrlString, "glTF", "KHR_xmp"));
+        generatorInputs.add(createExtensionGeneratorInput(
+            baseUrlString, "glTF", "KHR_xmp_json_ld"));
+        
+        File outputDirectory = new File("./data/output");
+        generate(generatorInputs, outputDirectory);
     }
-    //--------------------------------------------------------------------------
     
+    /**
+     * Create a {@link GeneratorInput} for the default "KHR_" extension
+     * with the given name
+     * 
+     * @param baseUrlString The base URL string
+     * @param mainFilePrefix The main file prefix. Well...
+     * @param extensionName The extension name
+     * @return the {@link GeneratorInput}
+     */
+    private static GeneratorInput createExtensionGeneratorInput(
+        String baseUrlString, String mainFilePrefix, String extensionName)
+    {
+        GeneratorInput generatorInput = new GeneratorInput();
+        generatorInput.setUrlString(baseUrlString 
+            + "extensions/2.0/Khronos/"+extensionName+"/schema/"
+            + mainFilePrefix + "." +extensionName+".schema.json");
+        generatorInput.setHeaderCode(
+            createHeaderCode("glTF "+extensionName+" JSON model")); 
+        String packageNamePart = extensionName;
+        if (packageNamePart.startsWith("KHR_")) 
+        {
+            packageNamePart = packageNamePart.substring(4);
+        }
+        generatorInput.setPackageName(
+            "de.javagl.jgltf.impl.v2.ext." + packageNamePart);
+        return generatorInput;
+    }
+    
+    
+    /**
+     * Create a {@link ClassGeneratorConfig} that is supposed to be used
+     * for generating the glTF classes
+     * 
+     * @return The {@link ClassGeneratorConfig}
+     */
     private static ClassGeneratorConfig createGltfConfig()
     {
         ClassGeneratorConfig config = new ClassGeneratorConfig();
         config.set(ClassGeneratorConfig.CREATE_ADDERS_AND_REMOVERS, true);
         config.set(ClassGeneratorConfig.CREATE_GETTERS_WITH_DEFAULT, true);
+        
+        config.addTypeOverride(
+            ".*accessor.schema.json#/properties/min", Number[].class);
+        config.addTypeOverride(
+            ".*accessor.schema.json#/properties/max", Number[].class);
+        
+        config.setSkippingValidation("TEMPPACKAGENAME.Image#mimeType", true);
+        
         return config;
     }
     
     /**
-     * Generate the classes for the schema with the given root element,
-     * using the given package name, in the given output directory
+     * Generate the classes for the schema with the given inputs,
+     * in the given output directory
      * 
-     * @param rootUri The root JSON schema URI
-     * @param packageName The package name
-     * @param headerCode The header code for each file
+     * @param generatorInputs The {@link GeneratorInput} objects
      * @param outputDirectory The output directory
      * @throws IOException If an IO error occurs
      */
-    private static void generate(URI rootUri, String packageName, 
-        String headerCode, File outputDirectory) throws IOException
+    private static void generate(
+        List<GeneratorInput> generatorInputs, File outputDirectory) 
+            throws IOException
     {
         logger.info("Creating NodeRepository");
-        NodeRepository nodeRepository = new NodeRepository(rootUri);
+        NodeRepository nodeRepository = new NodeRepository();
+        for (GeneratorInput generatorInput : generatorInputs)
+        {
+            URI uri = null;
+            try 
+            {
+                uri = new URI(generatorInput.getUrlString());
+            }
+            catch (URISyntaxException e)
+            {
+                throw new IOException(e);
+            }
+            logger.info("  Populating NodeRepository with " + uri);
+            nodeRepository.generateNodes(uri);
+            
+        }
         logger.info("Creating NodeRepository DONE");
         //System.out.println(nodeRepository.createDebugString());
         
@@ -148,7 +219,7 @@ public class JsonModelGen
         logger.info("Creating ClassGenerator");
         ClassGenerator classGenerator = 
             new ClassGenerator(createGltfConfig(), 
-                schemaGenerator, packageName, headerCode);
+                schemaGenerator, generatorInputs);
         logger.info("Creating ClassGenerator DONE");
         
         logger.info("Creating classes");

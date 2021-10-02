@@ -116,30 +116,40 @@ public class NodeRepository
     /**
      * The root URI
      */
-    private final URI rootUri;
+    private final List<URI> rootUris;
     
     /**
-     * The root node
+     * The root nodes
      */
-    private final JsonNode rootNode;
+    private final List<JsonNode> rootNodes;
     
     /**
-     * Create a new repository by parsing the given URI
-     * 
-     * @param rootUri The root URI
+     * Create a new repository
      */
-    public NodeRepository(URI rootUri)
+    public NodeRepository()
     {
-        rootUri = rootUri.normalize();
-        this.rootUri = rootUri;
-        this.rootNode = JsonUtils.readNodeOptional(rootUri);
+        this.rootUris = new ArrayList<URI>();
+        this.rootNodes = new ArrayList<JsonNode>();
+        this.uriToNode = new LinkedHashMap<URI, JsonNode>();
+        this.uriToCanonicalUri = new LinkedHashMap<URI, URI>();
+
+    }
+    
+    /**
+     * Generate the nodes, recursively, starting at the given root URI
+     * 
+     * @param newRootUri The root URI
+     */
+    public void generateNodes(URI newRootUri)
+    {
+        URI rootUri = newRootUri.normalize();
+        JsonNode rootNode = JsonUtils.readNodeOptional(rootUri);
         if (rootNode == null)
         {
             throw new JsonException("Could not read node from "+rootUri); 
         }
-        this.uriToNode = new LinkedHashMap<URI, JsonNode>();
-        this.uriToCanonicalUri = new LinkedHashMap<URI, URI>();
-
+        rootUris.add(rootUri);
+        rootNodes.add(rootNode);
         generateNodes(rootUri, rootNode);
     }
     
@@ -214,7 +224,7 @@ public class NodeRepository
                 if (fieldName.equals("$ref"))
                 {
                     String refString = fieldValue.asText();
-                    processRef(uri, node, refString);
+                    processRef(uri, refString);
                 }
                 
                 uri = getCanonicalUri(uri);
@@ -226,66 +236,138 @@ public class NodeRepository
             }
         }
     }
+    
+    /**
+     * Resolve the given "$ref" string against the given URI. 
+     * 
+     * This is not supposed to be used by clients. It tries to resolve
+     * the URI, and returns the resolved URI if it finds a node at the
+     * resulting location. If it does not find a node, it will try
+     * to resolve the reference string against other known root URIs
+     * as a fallback, and return any URI where a node is found.
+     * 
+     * @param uri The base URI
+     * @param refString The reference string
+     * @return The normalized URI, or <code>null</code> 
+     * if it cannot be resolved.
+     */
+    public URI resolveRefUri(URI uri, String refString) 
+    {
+        URI refUri = uri.resolve(refString).normalize();
+        
+        // If the URI and its node are already known, just return it
+        if (containsUri(refUri)) 
+        {
+            return refUri;
+        }
+        
+        // If a node exists at the resulting URI, return it as well
+        JsonNode refNode = JsonUtils.readNodeOptional(refUri);
+        if (refNode != null)
+        {
+            return refUri;
+        }
+
+        // Try to resolve the string against other root URIs as a fallback
+        URI fallbackRefUri = fallbackResolveAgainstRoot(refString);
+        if (fallbackRefUri != null)
+        {
+            return fallbackRefUri;
+        }
+        
+        log("Could not resolve reference " + refString 
+            + " against " + uri + " or any root URI");
+        return null;
+    }
 
     /**
      * Process a "$ref" (reference) that was parsed from a JSON field
      * 
      * @param uri The current URI
-     * @param node The current node
      * @param refString The string value of the "$ref" field 
      */
-    private void processRef(URI uri, JsonNode node, String refString)
+    private void processRef(URI uri, String refString)
     {
         if (refString.equals("#"))
         {
+            // TODO Think about how to handle self-references with
+            // multiple root nodes...
             URI refUri = uri.resolve(refString).normalize();
-            System.out.println("Self-reference "+refUri+" to "+rootNode);
-            put(refUri, rootNode);
+            logger.severe("Self-reference "+refUri);
+            //put(refUri, rootNode);
+            return;
         }
-        else
+
+        URI refUri = resolveRefUri(uri, refString);
+        
+        // If the URI and its node are already known, just 
+        // process the node
+        if (containsUri(refUri))
         {
-            URI refUri = uri.resolve(refString).normalize();
-            if (!containsUri(refUri))
+            log("generateSubNodes with known ref");
+            log("   uri          "+uri);
+            log("   canonicalUri "+refUri);
+
+            JsonNode refNode = get(refUri);
+            uriToCanonicalUri.put(uri, refUri);
+            logIndent++;
+            generateNodes(uri, refNode);
+            logIndent--;
+            return;
+        }
+            
+        // Try to create the node by reading it from the 
+        // given URI, and the process it
+        JsonNode refNode = JsonUtils.readNodeOptional(refUri);
+        if (refNode != null)
+        {
+            log("generateSubNodes");
+            log("   uri          "+uri);
+            log("   canonicalUri "+refUri);
+
+            uriToCanonicalUri.put(uri, refUri);
+
+            logIndent++;
+            generateNodes(uri, refNode);
+            logIndent--;
+            logIndent++;
+            generateNodes(refUri, refNode);
+            logIndent--;
+            
+            return;
+        }
+        
+        // No node could be read from the given URI.
+        log("WARNING: generateSubNodes: " + 
+            "No node found for refUri "+refUri);
+    }
+
+    /**
+     * A standalone schema file may not define any URI to resolve
+     * references against. Try to find the right URI by resolving 
+     * the reference string against all root URIs, and return
+     * the one where a node could be read.
+     * 
+     * @param refString The reference string
+     * @return The resolved URI, or <code>null</code> if none was found
+     */
+    private URI fallbackResolveAgainstRoot(String refString)
+    {
+        logger.warning("Attempting to resolve " + refString + " against known roots...");
+        for (URI rootUri : rootUris)
+        {
+            URI refUri = rootUri.resolve(refString).normalize();
+            JsonNode refNode = JsonUtils.readNodeOptional(refUri);
+            if (refNode != null)
             {
-                JsonNode refNode = JsonUtils.readNodeOptional(refUri);
-                if (refNode != null)
-                {
-                    log("generateSubNodes");
-                    log("   uri          "+uri);
-                    log("   canonicalUri "+refUri);
-
-                    uriToCanonicalUri.put(uri, refUri);
-
-                    logIndent++;
-                    generateNodes(uri, refNode);
-                    logIndent--;
-                    logIndent++;
-                    generateNodes(refUri, refNode);
-                    logIndent--;
-                }
-                else
-                {
-                    log("WARNING: generateSubNodes: " + 
-                        "No node found for refUri "+refUri);
-                    log("WARNING:    uri          "+uri);
-                    
-                    logger.warning("No node found for refUri "+refUri);
-                }
-            }
-            else
-            {
-                log("generateSubNodes with known ref");
-                log("   uri          "+uri);
-                log("   canonicalUri "+refUri);
-
-                JsonNode refNode = get(refUri);
-                uriToCanonicalUri.put(uri, refUri);
-                logIndent++;
-                generateNodes(uri, refNode);
-                logIndent--;
+                logger.warning("Attempting to resolve against known roots resulted in " + refUri);
+                return refUri;
             }
         }
+        logger.warning("Attempting to resolve against known roots failed");
+        return null;
     }
+    
 
     /**
      * Returns the canonical URI for the given URI. If there is a basic
@@ -333,24 +415,25 @@ public class NodeRepository
     
     
     /**
-     * Returns the root node that was parsed from the URI that was 
-     * given in the constructor
+     * Returns the root nodes that have been parsed from the URIs that 
+     * have been given to {@link #generateNodes(URI)}.
      * 
-     * @return The root node
+     * @return The root nodes
      */
-    public JsonNode getRootNode()
+    public List<JsonNode> getRootNodes()
     {
-        return rootNode;
+        return Collections.unmodifiableList(rootNodes);
     }
     
     /**
-     * Returns the root URI that was given in the constructor
+     * Returns the root URIs that have been given to 
+     * {@link #generateNodes(URI)}.
      * 
-     * @return The root URI
+     * @return The root URIs
      */
-    public URI getRootUri()
+    public List<URI> getRootUris()
     {
-        return rootUri;
+        return Collections.unmodifiableList(rootUris);
     }
     
     /**

@@ -92,6 +92,21 @@ class CodeModelDocs
     }
     
     /**
+     * Perform a basic sanitation of the given line for the use in JavaDoc.
+     * This mainly replaces HTML characters with their HTML equivalent.
+     * 
+     * @param line The input line
+     * @return The result
+     */
+    private static String sanitizeJavaDoc(String line)
+    {
+        String result = line;
+        result = result.replaceAll("<", "&lt;");
+        result = result.replaceAll(">", "&gt;");
+        return result;
+    }
+    
+    /**
      * Create a list of strings, each being one line of the description of
      * the specified property for the given class. These lines will summarize
      * the constraints that are derived from the given {@link Schema}, e.g.
@@ -152,6 +167,7 @@ class CodeModelDocs
         {
             propertyDescription = "The "+propertyName+" of this "+className;
         }
+        propertyDescription = sanitizeJavaDoc(propertyDescription);
         if (isRequired)
         {
             propertyDescription += " (required)";

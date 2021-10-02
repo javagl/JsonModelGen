@@ -58,18 +58,20 @@ class CodeModelMethods
     
     /**
      * Add a "setter" for the specified property in the given class
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @param isRequired Whether the property is required
+     *
+     * @param propertyInfo The {@link PropertyInfo}
+     * @param performValidation Whether validation statements should be added
      * @return The setter method
      */
     static JMethod addSetter(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema, boolean isRequired)
+        PropertyInfo propertyInfo, boolean performValidation)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        Schema propertySchema = propertyInfo.getPropertySchema();
+        boolean isRequired = propertyInfo.isRequired();
+        
         JCodeModel codeModel = definedClass.owner();
         String methodName = "set" + StringUtils.capitalize(propertyName);
         JMethod method = definedClass.method(
@@ -84,10 +86,13 @@ class CodeModelMethods
         addAllStatements(block, nullHandlingStatements);
         
         JBlock validationStatements = new JBlock();
-        CodeModelValidations.createValidationStatements(
-            validationStatements, codeModel, 
-            propertyName, propertyType, propertySchema);
-        addAllStatements(block, validationStatements);
+        if (performValidation)
+        {
+            CodeModelValidations.createValidationStatements(
+                validationStatements, codeModel, 
+                propertyName, propertyType, propertySchema);
+            addAllStatements(block, validationStatements);
+        }
 
         block.assign(
             JExpr._this().ref(propertyName), 
@@ -122,17 +127,17 @@ class CodeModelMethods
     /**
      * Add a "getter" for the specified property in the given class
      * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @param isRequired Whether the property is required
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The getter method
      */
-    static JMethod addGetter(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema, boolean isRequired)
+    static JMethod addGetter(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        Schema propertySchema = propertyInfo.getPropertySchema();
+        boolean isRequired = propertyInfo.isRequired();
+        
         JCodeModel codeModel = definedClass.owner();
         String methodName = getGetterMethodName(
             codeModel, propertyName, propertyType);
@@ -178,16 +183,16 @@ class CodeModelMethods
      * Add a method for the specified property in the given class,
      * that returns the default value
      * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
+     * @param propertyInfo The {@link PropertyInfo} 
      * @return The method
      */
-    static JMethod addDefaultGetter(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+    static JMethod addDefaultGetter(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        Schema propertySchema = propertyInfo.getPropertySchema();
+        
         JCodeModel codeModel = definedClass.owner();
         String methodName =
             "default" + StringUtils.capitalize(propertyName);
@@ -227,19 +232,18 @@ class CodeModelMethods
     /**
      * Add an "adder" for the specified property in the given class, 
      * whose type must be a subtype of "Map"
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
+     *
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "Map"
      */
-    static JMethod addAdderForMap(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+    static JMethod addAdderForMap(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        
         if (!CodeModels.isSubtypeOf(propertyType, Map.class))
         {
             throw new IllegalArgumentException(
@@ -304,20 +308,19 @@ class CodeModelMethods
     /**
      * Add a "remover" for the specified property in the given class, 
      * whose type must be a subtype of "Map"
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @param isRequired Whether the property is required
+     *
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "Map"
      */
-    static JMethod addRemoverForMap(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema, boolean isRequired)
+    static JMethod addRemoverForMap(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        boolean isRequired = propertyInfo.isRequired();
+        
         if (!CodeModels.isSubtypeOf(propertyType, Map.class))
         {
             throw new IllegalArgumentException(
@@ -400,19 +403,18 @@ class CodeModelMethods
     /**
      * Add an "adder" for the specified property in the given class, 
      * whose type must be a subtype of "List"
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
+     *
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "List"
      */
-    static JMethod addAdderForList(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+    static JMethod addAdderForList(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+
         if (!CodeModels.isSubtypeOf(propertyType, List.class))
         {
             throw new IllegalArgumentException(
@@ -473,19 +475,18 @@ class CodeModelMethods
      * Add a "remover" for the specified property in the given class, 
      * whose type must be a subtype of "List"
      * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @param isRequired Whether the property is required
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "List"
      */
-    static JMethod addRemoverForList(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema, boolean isRequired)
+    static JMethod addRemoverForList(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        boolean isRequired = propertyInfo.isRequired();
+        
         if (!CodeModels.isSubtypeOf(propertyType, List.class))
         {
             throw new IllegalArgumentException(

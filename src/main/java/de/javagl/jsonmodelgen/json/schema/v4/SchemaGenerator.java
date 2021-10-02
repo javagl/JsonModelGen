@@ -47,7 +47,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.javagl.jsonmodelgen.json.JsonUtils;
 import de.javagl.jsonmodelgen.json.NodeRepository;
 import de.javagl.jsonmodelgen.json.URIs;
-import de.javagl.jsonmodelgen.json.schema.codemodel.SchemaGeneratorUtils;
+import de.javagl.jsonmodelgen.json.schema.v4.codemodel.SchemaGeneratorUtilsV4;
 
 /**
  * A class that generates a {@link Schema} from a {@link NodeRepository}
@@ -119,7 +119,10 @@ public final class SchemaGenerator
         this.schemaResolver = this::resolveSchema;
         this.schemas = new LinkedHashMap<JsonNode, Schema>();
 
-        resolveSchema(nodeRepository.getRootUri());
+        // TODO This class still assumes a single root, but
+        // this class is deprecated anyhow.
+        resolveSchema(nodeRepository.getRootUris().get(0));
+        
         this.schemaToUris = computeSchemaToUrisMapping();
     }
 
@@ -228,7 +231,7 @@ public final class SchemaGenerator
             ObjectSchema schema = new ObjectSchema();
             schema.setId(uri.toString());
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemasArray(
+                SchemaGeneratorUtilsV4.getSubSchemasArray(
                     uri, node, "allOf", schemaResolver);
             Set<String> allTypeStrings = new LinkedHashSet<String>();
             for (Schema subSchema : subSchemas)
@@ -249,7 +252,7 @@ public final class SchemaGenerator
             ObjectSchema schema = new ObjectSchema();
             schema.setId(uri.toString());
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemasArray(
+                SchemaGeneratorUtilsV4.getSubSchemasArray(
                     uri, node, "anyOf", schemaResolver);
             Set<String> allTypeStrings = new LinkedHashSet<String>();
             for (Schema subSchema : subSchemas)
@@ -270,7 +273,7 @@ public final class SchemaGenerator
             ObjectSchema schema = new ObjectSchema();
             schema.setId(uri.toString());
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemasArray(
+                SchemaGeneratorUtilsV4.getSubSchemasArray(
                     uri, node, "oneOf", schemaResolver);
             Set<String> allTypeStrings = new LinkedHashSet<String>();
             for (Schema subSchema : subSchemas)
@@ -289,7 +292,7 @@ public final class SchemaGenerator
             ObjectSchema schema = new ObjectSchema();
             schema.setId(uri.toString());
             Schema subSchema =
-                SchemaGeneratorUtils.getSubSchema(
+                SchemaGeneratorUtilsV4.getSubSchema(
                     uri, notNode, "not", schemaResolver);
             schema.setNot(subSchema);
             return schema;
@@ -405,7 +408,7 @@ public final class SchemaGenerator
         if (node.has("allOf"))
         {
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemasArray(
+                SchemaGeneratorUtilsV4.getSubSchemasArray(
                     uri, node, "allOf", schemaResolver);
             schema.setAllOf(subSchemas);
             if (schema.getTypeStrings() == null)
@@ -416,7 +419,7 @@ public final class SchemaGenerator
         if (node.has("anyOf"))
         {
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemasArray(
+                SchemaGeneratorUtilsV4.getSubSchemasArray(
                     uri, node, "anyOf", schemaResolver);
             schema.setAnyOf(subSchemas);
             if (schema.getTypeStrings() == null)
@@ -427,7 +430,7 @@ public final class SchemaGenerator
         if (node.has("oneOf"))
         {
             List<Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemasArray(
+                SchemaGeneratorUtilsV4.getSubSchemasArray(
                     uri, node, "oneOf", schemaResolver);
             schema.setOneOf(subSchemas);
             if (schema.getTypeStrings() == null)
@@ -438,14 +441,14 @@ public final class SchemaGenerator
         if (node.has("not"))
         {
             Schema subSchema =
-                SchemaGeneratorUtils.getSubSchema(
+                SchemaGeneratorUtilsV4.getSubSchema(
                     uri, node.get("not"), "not", schemaResolver);
             schema.setNot(subSchema);
         }
         if (node.has("definitions"))
         {
             Map<String, Schema> subSchemas =
-                SchemaGeneratorUtils.getSubSchemasMap(
+                SchemaGeneratorUtilsV4.getSubSchemasMap(
                     uri, node, "definitions", schemaResolver);
             schema.setDefinitions(subSchemas);
         }
@@ -861,7 +864,9 @@ public final class SchemaGenerator
      */
     public Schema getRootSchema()
     {
-        return schemas.get(nodeRepository.getRootNode());
+        // TODO This class still assumes a single root, but
+        // this class is deprecated anyhow.
+        return schemas.get(nodeRepository.getRootNodes().get(0));
     }
 
     /**

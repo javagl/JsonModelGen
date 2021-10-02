@@ -81,7 +81,8 @@ class CodeModelValidations
             JExpr._new(codeModel._ref(NullPointerException.class)).
                 arg(exceptionMessageExpression);
         block._if(conditionExpression)._then()._throw(exceptionExpression);
-}    
+    }
+    
     /**
      * Insert statements into the given block (of a setter method) that
      * handle the treatment of possible <code>null</code> arguments.<br>
@@ -107,12 +108,12 @@ class CodeModelValidations
      * @param propertyName The property name
      * @param propertyType The property type
      * @param isRequired Whether the property is required
-     * @param schema The property schema
+     * @param propertySchema The property schema
      */
     static void createNullHandlingStatements(
         JBlock block, JCodeModel codeModel,
         String propertyName, JType propertyType,
-        Schema schema, boolean isRequired)
+        Schema propertySchema, boolean isRequired)
     {
         if (!propertyType.isPrimitive() && isRequired)
         {
@@ -148,19 +149,20 @@ class CodeModelValidations
      * @param codeModel The code model
      * @param propertyName The property name
      * @param propertyType The property type
-     * @param schema The property schema
+     * @param propertySchema The property schema
      */
     static void createValidationStatements(
         JBlock block, JCodeModel codeModel,
-        String propertyName, JType propertyType, Schema schema)
+        String propertyName, JType propertyType, Schema propertySchema)
     {
-        Iterable<String> enumStrings = schema.getEnumStrings();
+        Iterable<String> enumStrings = propertySchema.getEnumStrings();
         if (enumStrings == null)
         {
-            if (schema.getAnyOf() != null)
+            if (propertySchema.getAnyOf() != null)
             {
                 List<String> enumStringsFromAnyOf = 
-                    SchemaCodeUtils.determineEnumStringsFromAnyOf(schema);
+                    SchemaCodeUtils.determineEnumStringsFromAnyOf(
+                        propertySchema);
                 if (!enumStringsFromAnyOf.isEmpty())
                 {
                     enumStrings = enumStringsFromAnyOf;
@@ -172,24 +174,24 @@ class CodeModelValidations
             createEnumValidationStatements(
                 block, codeModel, propertyName, propertyType, enumStrings);
         }
-        else if (schema.isInteger())
+        else if (propertySchema.isInteger())
         {
             createIntegerValidationStatements(
-                block, codeModel, propertyName, schema.asInteger());
+                block, codeModel, propertyName, propertySchema.asInteger());
         }
-        else if (schema.isNumber())
+        else if (propertySchema.isNumber())
         {
             createNumberValidationStatements(
-                block, codeModel, propertyName, schema.asNumber());
+                block, codeModel, propertyName, propertySchema.asNumber());
         }
-        if (schema.isArray())
+        if (propertySchema.isArray())
         {
-            ArraySchema arraySchema = schema.asArray();
+            ArraySchema arraySchema = propertySchema.asArray();
             createArrayValidationStatements(
                 block, codeModel, propertyName, propertyType, arraySchema);
         }
 
-        if (schema.isString())
+        if (propertySchema.isString())
         {
             // TODO String validation statements: String length, pattern...
             logger.warning("String validation statements are not inserted yet");
@@ -212,39 +214,39 @@ class CodeModelValidations
      * @param block The block
      * @param codeModel The code model
      * @param propertyName The property name
-     * @param schema The property schema
+     * @param propertySchema The property schema
      */
     static void createIntegerValidationStatements(
         JBlock block, JCodeModel codeModel, String propertyName,
-        NumberSchema schema)
+        NumberSchema propertySchema)
     {
-        if (schema.getMaximum() != null)
+        if (propertySchema.getMaximum() != null)
         {
             createMaximumValidationStatements(
                 block, codeModel, propertyName,
-                schema.getMaximum().intValue(),
+                propertySchema.getMaximum().intValue(),
                 null);
         }
-        if (schema.getExclusiveMaximum() != null)
+        if (propertySchema.getExclusiveMaximum() != null)
         {
             createMaximumValidationStatements(
                 block, codeModel, propertyName,
                 null,
-                schema.getExclusiveMaximum().intValue());
+                propertySchema.getExclusiveMaximum().intValue());
         }
-        if (schema.getMinimum() != null)
+        if (propertySchema.getMinimum() != null)
         {
             createMinimumValidationStatements(
                 block, codeModel, propertyName,
-                schema.getMinimum().intValue(),
+                propertySchema.getMinimum().intValue(),
                 null);
         }
-        if (schema.getExclusiveMinimum() != null)
+        if (propertySchema.getExclusiveMinimum() != null)
         {
             createMinimumValidationStatements(
                 block, codeModel, propertyName,
                 null,
-                schema.getExclusiveMinimum().intValue());
+                propertySchema.getExclusiveMinimum().intValue());
         }
     }
 
@@ -256,39 +258,39 @@ class CodeModelValidations
      * @param block The block
      * @param codeModel The code model
      * @param propertyName The property name
-     * @param schema The property schema
+     * @param propertySchema The property schema
      */
     static void createNumberValidationStatements(
         JBlock block, JCodeModel codeModel, String propertyName,
-        NumberSchema schema)
+        NumberSchema propertySchema)
     {
-        if (schema.getMaximum() != null)
+        if (propertySchema.getMaximum() != null)
         {
             createMaximumValidationStatements(
                 block, codeModel, propertyName,
-                schema.getMaximum().doubleValue(),
+                propertySchema.getMaximum().doubleValue(),
                 null);
         }
-        if (schema.getExclusiveMaximum() != null)
+        if (propertySchema.getExclusiveMaximum() != null)
         {
             createMaximumValidationStatements(
                 block, codeModel, propertyName,
                 null,
-                schema.getExclusiveMaximum().doubleValue());
+                propertySchema.getExclusiveMaximum().doubleValue());
         }
-        if (schema.getMinimum() != null)
+        if (propertySchema.getMinimum() != null)
         {
             createMinimumValidationStatements(
                 block, codeModel, propertyName,
-                schema.getMinimum().doubleValue(),
+                propertySchema.getMinimum().doubleValue(),
                 null);
         }
-        if (schema.getExclusiveMinimum() != null)
+        if (propertySchema.getExclusiveMinimum() != null)
         {
             createMinimumValidationStatements(
                 block, codeModel, propertyName,
                 null,
-                schema.getExclusiveMinimum().doubleValue());
+                propertySchema.getExclusiveMinimum().doubleValue());
         }
     }
 

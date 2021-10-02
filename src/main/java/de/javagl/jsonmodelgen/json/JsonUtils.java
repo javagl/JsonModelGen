@@ -336,7 +336,7 @@ public class JsonUtils
             {
                 result = n.asInt();
             }
-            else
+            else if (n.isNumber())
             {
                 result = n.asDouble();
             }
@@ -584,7 +584,7 @@ public class JsonUtils
         {
             exception = e;
         }
-        logger.warning(
+        logger.severe(
             "Could not read schema from "+uri+
             " - skipping ("+exception.getMessage()+")");
         return null;
