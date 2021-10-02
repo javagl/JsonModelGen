@@ -63,6 +63,7 @@ public class JsonModelGen
         Locale.setDefault(Locale.ENGLISH);
         
         generateGlTF();
+        //generateTiles();
     }
     
     /**
@@ -156,7 +157,56 @@ public class JsonModelGen
             "de.javagl.jgltf.impl.v2.ext." + packageNamePart);
         return generatorInput;
     }
+
     
+    /**
+     * Generate the 3D Tiles classes from the schema
+     * 
+     * @throws IOException If an IO error occurs
+     */
+    private static void generateTiles() throws IOException
+    {
+        String baseUrlString = 
+            "https://raw.githubusercontent.com/"
+            + "CesiumGS/3d-tiles/3d-tiles-next/";
+        
+        GeneratorInput coreGeneratorInput = new GeneratorInput();
+        coreGeneratorInput.setUrlString(baseUrlString 
+            + "/specification/schema/tileset.schema.json");
+        coreGeneratorInput.setHeaderCode(
+            createHeaderCode("3D Tiles JSON model")); 
+        coreGeneratorInput.setPackageName(
+            "de.javagl.j3dtiles.impl");
+        
+        List<GeneratorInput> generatorInputs = new ArrayList<GeneratorInput>();
+        generatorInputs.add(coreGeneratorInput);
+
+        // Experimental support for extensions...
+        GeneratorInput implicitTilingGeneratorInput = new GeneratorInput();
+        implicitTilingGeneratorInput.setUrlString(baseUrlString 
+            + "extensions/"+"3DTILES_implicit_tiling"+"/schema/"
+            + "tile" + "." +"3DTILES_implicit_tiling"+".schema.json");
+        implicitTilingGeneratorInput.setHeaderCode(
+            createHeaderCode("3D Tiles "+"3DTILES_implicit_tiling"+" JSON model")); 
+        implicitTilingGeneratorInput.setPackageName(
+            "de.javagl.j3dtiles.impl.ext." + "implicit_tiling");
+        generatorInputs.add(implicitTilingGeneratorInput);
+        
+        GeneratorInput subtreeGeneratorInput = new GeneratorInput();
+        subtreeGeneratorInput.setUrlString(baseUrlString 
+            + "extensions/"+"3DTILES_implicit_tiling"+"/schema/"
+            + "subtree" + "/" + "subtree.schema.json");
+        subtreeGeneratorInput.setHeaderCode(
+            createHeaderCode("3D Tiles " + "3DTILES_implicit_tiling" + " JSON model")); 
+        subtreeGeneratorInput.setPackageName(
+            "de.javagl.j3dtiles.impl.ext." + "implicit_tiling.subtree");
+        generatorInputs.add(subtreeGeneratorInput);
+        
+        
+        File outputDirectory = new File("./data/output");
+        generate(generatorInputs, outputDirectory);
+    }
+
     
     /**
      * Create a {@link ClassGeneratorConfig} that is supposed to be used
