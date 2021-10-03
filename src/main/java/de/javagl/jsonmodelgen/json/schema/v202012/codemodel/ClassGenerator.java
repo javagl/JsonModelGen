@@ -862,11 +862,6 @@ public class ClassGenerator
             boolean performValidation = 
                 !config.isSkippingValidation(fullPropertyName);
             
-            if (propertyName.equals("mimeType"))
-            {
-                System.out.println("Hello");
-            }
-            
             addField(propertyInfo);
             CodeModelMethods.addSetter(propertyInfo, performValidation);
             CodeModelMethods.addGetter(propertyInfo);
