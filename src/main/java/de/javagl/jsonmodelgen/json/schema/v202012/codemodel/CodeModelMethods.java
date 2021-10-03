@@ -47,6 +47,7 @@ import com.sun.codemodel.JType;
 
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModelInitializers;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModels;
+import de.javagl.jsonmodelgen.json.schema.codemodel.NameUtils;
 import de.javagl.jsonmodelgen.json.schema.codemodel.StringUtils;
 import de.javagl.jsonmodelgen.json.schema.v202012.Schema;
 
@@ -71,18 +72,22 @@ class CodeModelMethods
         JType propertyType = propertyInfo.getPropertyType();
         Schema propertySchema = propertyInfo.getPropertySchema();
         boolean isRequired = propertyInfo.isRequired();
+
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
         
         JCodeModel codeModel = definedClass.owner();
-        String methodName = "set" + StringUtils.capitalize(propertyName);
+        String methodName = 
+            "set" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
-        method.param(propertyType, propertyName);
+        method.param(propertyType, sanitizedPropertyName);
         JBlock block = method.body();
 
         JBlock nullHandlingStatements = new JBlock();
         CodeModelValidations.createNullHandlingStatements(
             nullHandlingStatements, codeModel, 
-            propertyName, propertyType, propertySchema, isRequired);
+            sanitizedPropertyName, propertyType, propertySchema, isRequired);
         addAllStatements(block, nullHandlingStatements);
         
         JBlock validationStatements = new JBlock();
@@ -90,23 +95,25 @@ class CodeModelMethods
         {
             CodeModelValidations.createValidationStatements(
                 validationStatements, codeModel, 
-                propertyName, propertyType, propertySchema);
+                sanitizedPropertyName, propertyType, propertySchema);
             addAllStatements(block, validationStatements);
         }
 
         block.assign(
-            JExpr._this().ref(propertyName), 
-            JExpr.ref(propertyName));
+            JExpr._this().ref(sanitizedPropertyName), 
+            JExpr.ref(sanitizedPropertyName));
 
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
         String description = CodeModelDocs.createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema, isRequired);
+            definedClass.name(), sanitizedPropertyName, 
+            propertySchema, isRequired);
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
-        sb.append("@param "+propertyName+" The "+propertyName+" to set");
+        sb.append("@param "+sanitizedPropertyName
+            +" The "+sanitizedPropertyName+" to set");
         if (isRequired)
         {
             sb.append("\n");
@@ -138,22 +145,25 @@ class CodeModelMethods
         Schema propertySchema = propertyInfo.getPropertySchema();
         boolean isRequired = propertyInfo.isRequired();
         
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         JCodeModel codeModel = definedClass.owner();
         String methodName = getGetterMethodName(
-            codeModel, propertyName, propertyType);
+            codeModel, sanitizedPropertyName, propertyType);
         JMethod method = definedClass.method(
             JMod.PUBLIC, propertyType, methodName);
         JBlock block = method.body();
-        block._return(JExpr._this().ref(propertyName));
+        block._return(JExpr._this().ref(sanitizedPropertyName));
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
         String description = CodeModelDocs.createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema, isRequired);
+            definedClass.name(), sanitizedPropertyName, propertySchema, isRequired);
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
-        sb.append("@return The "+propertyName);
+        sb.append("@return The "+sanitizedPropertyName);
         docComment.append(sb.toString());
         
         return method;
@@ -192,10 +202,13 @@ class CodeModelMethods
         String propertyName = propertyInfo.getPropertyName();
         JType propertyType = propertyInfo.getPropertyType();
         Schema propertySchema = propertyInfo.getPropertySchema();
+
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
         
         JCodeModel codeModel = definedClass.owner();
         String methodName =
-            "default" + StringUtils.capitalize(propertyName);
+            "default" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, propertyType, methodName);
         JBlock block = method.body();
@@ -215,14 +228,14 @@ class CodeModelMethods
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
         String getterMethodName = getGetterMethodName(
-            codeModel, propertyName, propertyType);
+            codeModel, sanitizedPropertyName, propertyType);
         String description = CodeModelDocs.createJavaDoc(Arrays.asList(
-            "Returns the default value of the " + propertyName,
+            "Returns the default value of the " + sanitizedPropertyName,
             "@see #"+getterMethodName));
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
-        sb.append("@return The default " + propertyName);
+        sb.append("@return The default " + sanitizedPropertyName);
         docComment.append(sb.toString());
         
         return method;

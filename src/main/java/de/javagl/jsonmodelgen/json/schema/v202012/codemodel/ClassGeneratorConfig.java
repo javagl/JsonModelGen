@@ -74,6 +74,14 @@ public class ClassGeneratorConfig
      * @see #addTypeOverride(String, Class)
      */
     private final Map<String, Class<?>> typeOverrides;
+
+    /**
+     * The mapping from class names that have been determined from the
+     * schema, to names that should be used instead.
+     * 
+     * @see #addClassNameOverride(String, String)
+     */
+    private final Map<String, String> classNameOverrides;
     
     /**
      * The set of full property names for which validation should be skipped.
@@ -89,6 +97,7 @@ public class ClassGeneratorConfig
     {
         this.flags = new HashSet<String>();
         this.typeOverrides = new LinkedHashMap<String, Class<?>>();
+        this.classNameOverrides = new LinkedHashMap<String, String>();
         this.skippingValidationFullPropertyNames = new HashSet<String>();
     }
     
@@ -159,6 +168,35 @@ public class ClassGeneratorConfig
             }
         }
         return null;
+    }
+    
+    /**
+     * Add the given override for a class name.
+     * 
+     * Certain Java language core class names (like <code>"Class"</code>
+     * or <code>"Enum"</code>) should not be used, so they may be overridden
+     * here.
+     * 
+     * @param oldClassName The old class name
+     * @param newClassName The new class name
+     */
+    public void addClassNameOverride(String oldClassName, String newClassName)
+    {
+        classNameOverrides.put(oldClassName, newClassName);
+    }
+    
+    /**
+     * Returns the override for the given class name, or <code>null</code> 
+     * if no override was defined.
+     * 
+     * @see #addClassNameOverride(String, String)
+     * 
+     * @param oldClassName The old class name
+     * @return The new class name, or <code>null</code>
+     */
+    public String getClassNameOverride(String oldClassName)
+    {
+        return classNameOverrides.get(oldClassName);
     }
     
     /**

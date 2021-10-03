@@ -60,6 +60,7 @@ import de.javagl.jsonmodelgen.GeneratorInput;
 import de.javagl.jsonmodelgen.json.schema.codemodel.ClassNameGenerator;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModelInitializers;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModels;
+import de.javagl.jsonmodelgen.json.schema.codemodel.NameUtils;
 import de.javagl.jsonmodelgen.json.schema.codemodel.StringUtils;
 import de.javagl.jsonmodelgen.json.schema.v202012.ArraySchema;
 import de.javagl.jsonmodelgen.json.schema.v202012.BooleanSchema;
@@ -142,6 +143,12 @@ public class ClassGenerator
             List<URI> uris = schemaGenerator.getUris(schema);
             String className =
                 classNameGenerator.generateClassName(schema, uris);
+            String classNameOverride =
+                config.getClassNameOverride(className);
+            if (classNameOverride != null)
+            {
+                className = classNameOverride;
+            }
             JDefinedClass definedClass =
                 resolveDefinedClass(schema, className, ClassType.CLASS);
             if (!pendingTypes.contains(schema))
@@ -903,8 +910,10 @@ public class ClassGenerator
         Schema propertySchema = propertyInfo.getPropertySchema();
         boolean isRequired = propertyInfo.isRequired();
         
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
         JFieldVar fieldVar = definedClass.field(
-            JMod.PRIVATE, propertyType, propertyName);
+            JMod.PRIVATE, propertyType, sanitizedPropertyName);
 
         if (isRequired)
         {
@@ -1069,7 +1078,6 @@ public class ClassGenerator
 
         return codeModel.ref(List.class).narrow(itemType);
     }
-
 
     /**
      * Create an empty string with the given length. 
