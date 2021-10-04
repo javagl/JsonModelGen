@@ -27,8 +27,10 @@
 package de.javagl.jsonmodelgen.json.schema.codemodel;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -163,7 +165,97 @@ public class ClassNameUtils
         }
         
         className = cleanUpClassName(className);
+        
+        className = beautifyClassName(className);
         return className;
+    }
+    
+    /**
+     * Beautify the given class name. The details are not specified, but...
+     * it may, for example, change names like 
+     * <code>"NodeEXT_example_extension"</code> to
+     * <code>"NodeExampleExtension"</code>...
+     * 
+     * @param className The class name
+     * @return The beautified class name
+     */
+    private static String beautifyClassName(String className)
+    {
+        String preparedClassName = className;
+        List<String> knownPrefixes = Arrays.asList(
+            "KHR",
+            "EXT",
+            "ADOBE",
+            "AGI",
+            "AGT",
+            "ALCM",
+            "ALI",
+            "AMZN",
+            "ANIMECH",
+            "ASOBO",
+            "AVR",
+            "BLENDER",
+            "CAPTURE",
+            "CESIUM",
+            "CITRUS",
+            "CLO",
+            "CVTOOLS",
+            "EPIC",
+            "FB",
+            "FOXIT",
+            "GOOGLE",
+            "GRIFFEL",
+            "KDAB",
+            "LLQ",
+            "MAXAR",
+            "MESHOPT",
+            "MOZ",
+            "MPEG",
+            "MSFT",
+            "NV",
+            "OFT",
+            "OMI",
+            "OWLII",
+            "PANDA3D",
+            "POLUTROPON",
+            "PTC",
+            "S8S",
+            "SEIN",
+            "SI",
+            "SKFB",
+            "SKYLINE",
+            "SPECTRUM",
+            "TRYON",
+            "UX3D",
+            "VRMC",
+            "WEB3D"           
+        );
+        for (String prefix : knownPrefixes)
+        {
+            preparedClassName = preparedClassName.replaceAll(prefix + "_", "_");
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        boolean capitalizeNext = false;
+        for (int i=0; i<preparedClassName.length(); i++)
+        {
+            char c = preparedClassName.charAt(i);
+            if (c != '_')
+            {
+                if (capitalizeNext)
+                {
+                    c = Character.toUpperCase(c);
+                }
+                sb.append(c);
+                capitalizeNext = false;
+            }
+            else
+            {
+                capitalizeNext = true;
+            }
+        }
+        return sb.toString();
+        
     }
     
     /**
