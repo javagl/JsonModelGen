@@ -586,8 +586,11 @@ public class ClassGenerator
     
     /**
      * If the given {@link ObjectSchema} has
-     * {@link ObjectSchema#getDefinitions()}, then this method will add
-     * new static inner types to the given class
+     * {@link ObjectSchema#getDefinitions()}, then this method
+     * will create types for these definitions.
+     *
+     * TODO It should be configurable whether these are inner classes
+     * or top-level classes. Right now, they are simple top-level classes.
      *
      * @param objectSchema The {@link ObjectSchema}
      * @param definedClass The target class
@@ -602,16 +605,8 @@ public class ClassGenerator
         }
         for (Entry<String, Schema> entry : definitions.entrySet())
         {
-            String definitionName = entry.getKey();
-            //Schema definitionSchema = entry.getValue();
-
-            // TODO Definitions should probably become inner types. But
-            // this is currently not supported, and rarely used in 
-            // existing JSON schemas
-            logger.warning("Definition with name " + definitionName + " in " 
-                + SchemaUtils.createShortSchemaDebugString(objectSchema) 
-                + "is not handled yet");
-
+            Schema definitionSchema = entry.getValue();
+            typeResolver.apply(definitionSchema);
         }
     }
     
