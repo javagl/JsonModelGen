@@ -27,6 +27,7 @@
 package de.javagl.jsonmodelgen.json.schema.codemodel;
 
 import java.net.URI;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -132,40 +133,31 @@ public class ClassNameUtils
     private static String deriveClassName(URI uri)
     {
         String uriString = uri.toString();
+        String className = null;
         
-        int lastGlobalHashIndex = uriString.lastIndexOf("#");
-        int lastSlashIndex = 0;
-        if (lastGlobalHashIndex >= 0)
+        // If the URI is part of JSON Schema "definitions", then just
+        // derive the class name from the respective name
+        if (uriString.contains("#/definitions"))
         {
-            lastSlashIndex = uriString.lastIndexOf('/', lastGlobalHashIndex-1);
+            int definitionsIndex = uriString.indexOf("#/definitions");
+            String definitionName = uriString.substring(definitionsIndex + 13);
+            className = StringUtils.capitalize(definitionName);
         }
         else
         {
-            lastSlashIndex = uriString.lastIndexOf('/');
-        }
-        String fileNameAndFragment = uriString.substring(lastSlashIndex+1);
+            String fileName = Paths.get(uri.getPath()).getFileName().toString();
+            fileName = stripSuffixIfPresent(fileName, ".json");
+            fileName = stripSuffixIfPresent(fileName, ".schema");
+            className = StringUtils.capitalize(fileName);
 
-        String fragment = null;
-        String fileName = fileNameAndFragment;
-        int lastHashIndex = fileNameAndFragment.lastIndexOf("#");
-        if (lastHashIndex != -1)
-        {
-            fileName = fileNameAndFragment.substring(0, lastHashIndex);
-            fragment = fileNameAndFragment.substring(
-                lastHashIndex+2, fileNameAndFragment.length());
-        }
-        fileName = stripSuffixIfPresent(fileName, ".json");
-        fileName = stripSuffixIfPresent(fileName, ".schema");
-        
-        String className = StringUtils.capitalize(fileName);
-        
-        if (fragment != null)
-        {
-            className += StringUtils.capitalize(fragment);
+            String fragment = uri.getFragment();
+            if (fragment != null)
+            {
+                className += fragment;
+            }
         }
         
         className = cleanUpClassName(className);
-        
         className = beautifyClassName(className);
         return className;
     }
@@ -185,6 +177,7 @@ public class ClassNameUtils
         List<String> knownPrefixes = Arrays.asList(
             "KHR",
             "EXT",
+            "3DTILES",
             "ADOBE",
             "AGI",
             "AGT",
