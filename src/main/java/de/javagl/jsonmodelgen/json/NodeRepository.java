@@ -321,6 +321,12 @@ public class NodeRepository
         JsonNode refNode = JsonUtils.readNodeOptional(refUri);
         if (refNode != null)
         {
+            String fragment = refUri.getFragment();
+            if (fragment != null)
+            {
+                refNode = resolveFragment(refNode, fragment);
+            }
+            
             log("generateSubNodes");
             log("   uri          "+uri);
             log("   canonicalUri "+refUri);
@@ -341,6 +347,42 @@ public class NodeRepository
         log("WARNING: generateSubNodes: " + 
             "No node found for refUri "+refUri);
     }
+    
+    /**
+     * Resolves a given fragment string against a given node.
+     * 
+     * For a node like <code>{ "foo": { "bar" : { "inner": ... } } }</code>
+     * and a fragment <code>"/foo/bar"</code>, this will return the 
+     * node <code>{ "inner": ... }</code>.
+     * 
+     * If the fragment cannot be resolved, then <code>null</code> is 
+     * returned.
+     * 
+     * @param node The node
+     * @param fragment The fragment
+     * @return The resolved fragment node
+     */
+    private static JsonNode resolveFragment(JsonNode node, String fragment)
+    {
+        String f = fragment;
+        if (f.startsWith("/")) 
+        {
+            f = f.substring(1);
+        }
+        String tokens[] = f.split("/");
+        JsonNode current = node;
+        for (String token : tokens)
+        {
+            current = current.get(token);
+            if (current == null)
+            {
+                logger.warning("Could not resolve fragment " + fragment
+                    + " against " + node);
+                return null;
+            }
+        }
+        return current;
+    }
 
     /**
      * A standalone schema file may not define any URI to resolve
@@ -353,14 +395,16 @@ public class NodeRepository
      */
     private URI fallbackResolveAgainstRoot(String refString)
     {
-        logger.warning("Attempting to resolve " + refString + " against known roots...");
+        logger.warning("Attempting to resolve " 
+            + refString + " against known roots...");
         for (URI rootUri : rootUris)
         {
             URI refUri = rootUri.resolve(refString).normalize();
             JsonNode refNode = JsonUtils.readNodeOptional(refUri);
             if (refNode != null)
             {
-                logger.warning("Attempting to resolve against known roots resulted in " + refUri);
+                logger.warning("Attempting to resolve against "
+                    + "known roots resulted in " + refUri);
                 return refUri;
             }
         }
