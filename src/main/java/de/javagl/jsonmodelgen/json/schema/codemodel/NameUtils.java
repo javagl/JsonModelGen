@@ -248,14 +248,14 @@ public class NameUtils
        {
            if (isJavaKeyword(string) || isJavaLiteral(string))
            {
-               return string + "_";
+               return string + "Property";
            }
            return string;
        }
        String s = makeSyntacticallyValidJavaIdentifier(string);
        if (isJavaKeyword(s) || isJavaLiteral(s))
        {
-           return s + "_";
+           return s + "Property";
        }
        return s;
     }
