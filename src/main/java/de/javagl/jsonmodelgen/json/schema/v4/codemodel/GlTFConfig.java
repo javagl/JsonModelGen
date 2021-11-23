@@ -24,7 +24,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-package de.javagl.jsonmodelgen.json.schema.v202012.codemodel;
+package de.javagl.jsonmodelgen.json.schema.v4.codemodel;
 
 /**
  * Preliminary compile-time flags for different configurations.

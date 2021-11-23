@@ -265,8 +265,11 @@ class CodeModelMethods
         }
         JCodeModel codeModel = definedClass.owner();
         
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         String methodName = 
-            "add" + StringUtils.capitalize(propertyName);
+            "add" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
         
@@ -287,7 +290,8 @@ class CodeModelMethods
             nullCheckStatements, codeModel, "value");
         addAllStatements(block, nullCheckStatements);
 
-        block.decl(propertyType, "oldMap", JExpr._this().ref(propertyName));
+        block.decl(propertyType, "oldMap", 
+            JExpr._this().ref(sanitizedPropertyName));
         JClass mapType = codeModel.ref(LinkedHashMap.class);
         JClass typedMapType = mapType.narrow(keyType, valueType);
         block.decl(propertyType, "newMap", JExpr._new(typedMapType));
@@ -298,7 +302,8 @@ class CodeModelMethods
             JExpr.ref("newMap"), "putAll").arg(JExpr.ref("oldMap"));
         block.invoke(JExpr.ref("newMap"), "put")
             .arg(JExpr.ref("key")).arg(JExpr.ref("value"));
-        block.assign(JExpr._this().ref(propertyName), JExpr.ref("newMap"));
+        block.assign(JExpr._this().ref(sanitizedPropertyName), 
+            JExpr.ref("newMap"));
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
@@ -342,8 +347,11 @@ class CodeModelMethods
         }
         JCodeModel codeModel = definedClass.owner();
 
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         String methodName = 
-            "remove" + StringUtils.capitalize(propertyName);
+            "remove" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
         
@@ -361,7 +369,8 @@ class CodeModelMethods
             nullCheckStatements, codeModel, "key");
         addAllStatements(block, nullCheckStatements);
 
-        block.decl(propertyType, "oldMap", JExpr._this().ref(propertyName));
+        block.decl(propertyType, "oldMap", 
+            JExpr._this().ref(sanitizedPropertyName));
         JClass mapType = codeModel.ref(LinkedHashMap.class);
         JClass typedMapType = mapType.narrow(keyType, valueType);
         block.decl(propertyType, "newMap", JExpr._new(typedMapType));
@@ -385,7 +394,8 @@ class CodeModelMethods
         }
         else
         {
-            block.assign(JExpr._this().ref(propertyName), JExpr.ref("newMap"));
+            block.assign(JExpr._this().ref(sanitizedPropertyName), 
+                JExpr.ref("newMap"));
         }
         
         JDocComment docComment = method.javadoc();
@@ -436,8 +446,11 @@ class CodeModelMethods
         }
         JCodeModel codeModel = definedClass.owner();
         
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         String methodName = 
-            "add" + StringUtils.capitalize(propertyName);
+            "add" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
         
@@ -454,7 +467,8 @@ class CodeModelMethods
             nullCheckStatements, codeModel, "element");
         addAllStatements(block, nullCheckStatements);
 
-        block.decl(propertyType, "oldList", JExpr._this().ref(propertyName));
+        block.decl(propertyType, "oldList", 
+            JExpr._this().ref(sanitizedPropertyName));
         JClass listType = codeModel.ref(ArrayList.class);
         JClass typedListType = listType.narrow(elementType);
         block.decl(propertyType, "newList", JExpr._new(typedListType));
@@ -465,7 +479,8 @@ class CodeModelMethods
             JExpr.ref("newList"), "addAll").arg(JExpr.ref("oldList"));
         block.invoke(JExpr.ref("newList"), "add")
             .arg(JExpr.ref("element"));
-        block.assign(JExpr._this().ref(propertyName), JExpr.ref("newList"));
+        block.assign(JExpr._this().ref(sanitizedPropertyName), 
+            JExpr.ref("newList"));
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
@@ -508,8 +523,11 @@ class CodeModelMethods
         }
         JCodeModel codeModel = definedClass.owner();
         
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         String methodName = 
-            "remove" + StringUtils.capitalize(propertyName);
+            "remove" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
         
@@ -526,7 +544,8 @@ class CodeModelMethods
             nullCheckStatements, codeModel, "element");
         addAllStatements(block, nullCheckStatements);
 
-        block.decl(propertyType, "oldList", JExpr._this().ref(propertyName));
+        block.decl(propertyType, "oldList", 
+            JExpr._this().ref(sanitizedPropertyName));
         JClass listType = codeModel.ref(ArrayList.class);
         JClass typedListType = listType.narrow(elementType);
         block.decl(propertyType, "newList", JExpr._new(typedListType));
@@ -550,7 +569,8 @@ class CodeModelMethods
         }
         else
         {
-            block.assign(JExpr._this().ref(propertyName), JExpr.ref("newList"));
+            block.assign(JExpr._this().ref(sanitizedPropertyName), 
+                JExpr.ref("newList"));
         }
         
         JDocComment docComment = method.javadoc();

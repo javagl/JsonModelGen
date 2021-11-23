@@ -59,7 +59,6 @@ import de.javagl.jsonmodelgen.json.schema.codemodel.ClassNameGenerator;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModelInitializers;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModels;
 import de.javagl.jsonmodelgen.json.schema.codemodel.StringUtils;
-import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.GlTFConfig;
 import de.javagl.jsonmodelgen.json.schema.v4.ArraySchema;
 import de.javagl.jsonmodelgen.json.schema.v4.BooleanSchema;
 import de.javagl.jsonmodelgen.json.schema.v4.IntegerSchema;
