@@ -699,6 +699,17 @@ public class ClassGenerator
             return codeModel._ref(Object.class);
         }
         
+        // Resolve all the types that are declared in oneOf, creating them
+        // if necessary, but return "object" eventually
+        List<Schema> oneOf = objectSchema.getOneOf();
+        if (oneOf != null)
+        {
+            for (Schema one : oneOf)
+            {
+                typeResolver.apply(one);
+            }
+            return codeModel._ref(Object.class);
+        }
 
         logger.warning("No important properties in "+
             SchemaUtils.createShortSchemaDebugString(objectSchema)+
