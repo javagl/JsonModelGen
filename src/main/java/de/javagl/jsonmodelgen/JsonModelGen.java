@@ -29,13 +29,11 @@ package de.javagl.jsonmodelgen;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.logging.Logger;
 
 import de.javagl.jsonmodelgen.json.NodeRepository;
+import de.javagl.jsonmodelgen.json.URIs;
 import de.javagl.jsonmodelgen.json.schema.v202012.SchemaGenerator;
 import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGenerator;
 import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGeneratorConfig;
@@ -52,169 +50,12 @@ public class JsonModelGen
         Logger.getLogger(JsonModelGen.class.getName());
     
     /**
-     * Entry point of the application
-     * 
-     * @param args Not used
-     * @throws Exception If an error occurs
-     */
-    public static void main(String[] args) throws Exception
-    {
-        LoggerUtil.initLogging();
-        Locale.setDefault(Locale.ENGLISH);
-        
-        generateGlTF();
-        //generateTiles();
-    }
-    
-    /**
-     * Generate the glTF classes from the schema
-     * 
-     * @throws IOException If an IO error occurs
-     */
-    private static void generateGlTF() throws IOException
-    {
-        String baseUrlString = 
-            "https://raw.githubusercontent.com/KhronosGroup/glTF/main/";
-        
-        GeneratorInput coreGeneratorInput = new GeneratorInput();
-        coreGeneratorInput.setUrlString(baseUrlString 
-            + "/specification/2.0/schema/glTF.schema.json");
-        coreGeneratorInput.setHeaderCode(
-            createHeaderCode("glTF JSON model")); 
-        coreGeneratorInput.setPackageName(
-            "de.javagl.jgltf.impl.v2");
-        
-        
-        List<GeneratorInput> generatorInputs = new ArrayList<GeneratorInput>();
-        generatorInputs.add(coreGeneratorInput);
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "mesh.primitive", "KHR_draco_mesh_compression"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_lights_punctual"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_materials_clearcoat"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_materials_ior"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_materials_pbrSpecularGlossiness"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_materials_sheen"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_materials_specular"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_materials_transmission"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_materials_unlit"));
-        // TODO No sensible output for now
-        //generatorInputs.add(createExtensionGeneratorInput(
-        //    baseUrlString, "glTF", "KHR_materials_variants"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_materials_volume"));
-        // TODO No schema
-        //generatorInputs.add(createExtensionGeneratorInput(
-        //    baseUrlString, "glTF", "KHR_mesh_quantization"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_techniques_webgl"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "texture", "KHR_texture_basisu"));
-        // TODO Different main file name
-        //generatorInputs.add(createExtensionGeneratorInput(
-        //    baseUrlString, "glTF", "KHR_texture_transform"));
-        // TODO Invalid field name
-        //generatorInputs.add(createExtensionGeneratorInput(
-        //    baseUrlString, "glTF", "KHR_xmp"));
-        generatorInputs.add(createExtensionGeneratorInput(
-            baseUrlString, "glTF", "KHR_xmp_json_ld"));
-        
-        File outputDirectory = new File("./data/output");
-        generate(generatorInputs, outputDirectory);
-    }
-    
-    /**
-     * Create a {@link GeneratorInput} for the default "KHR_" extension
-     * with the given name
-     * 
-     * @param baseUrlString The base URL string
-     * @param mainFilePrefix The main file prefix. Well...
-     * @param extensionName The extension name
-     * @return the {@link GeneratorInput}
-     */
-    private static GeneratorInput createExtensionGeneratorInput(
-        String baseUrlString, String mainFilePrefix, String extensionName)
-    {
-        GeneratorInput generatorInput = new GeneratorInput();
-        generatorInput.setUrlString(baseUrlString 
-            + "extensions/2.0/Khronos/"+extensionName+"/schema/"
-            + mainFilePrefix + "." +extensionName+".schema.json");
-        generatorInput.setHeaderCode(
-            createHeaderCode("glTF "+extensionName+" JSON model")); 
-        String packageNamePart = extensionName;
-        if (packageNamePart.startsWith("KHR_")) 
-        {
-            packageNamePart = packageNamePart.substring(4);
-        }
-        generatorInput.setPackageName(
-            "de.javagl.jgltf.impl.v2.ext." + packageNamePart);
-        return generatorInput;
-    }
-
-    
-    /**
-     * Generate the 3D Tiles classes from the schema
-     * 
-     * @throws IOException If an IO error occurs
-     */
-    private static void generateTiles() throws IOException
-    {
-        String baseUrlString = 
-            "https://raw.githubusercontent.com/"
-            + "CesiumGS/3d-tiles/3d-tiles-next/";
-        
-        GeneratorInput coreGeneratorInput = new GeneratorInput();
-        coreGeneratorInput.setUrlString(baseUrlString 
-            + "/specification/schema/tileset.schema.json");
-        coreGeneratorInput.setHeaderCode(
-            createHeaderCode("3D Tiles JSON model")); 
-        coreGeneratorInput.setPackageName(
-            "de.javagl.j3dtiles.impl");
-        
-        List<GeneratorInput> generatorInputs = new ArrayList<GeneratorInput>();
-        generatorInputs.add(coreGeneratorInput);
-
-        // Experimental support for extensions...
-        GeneratorInput implicitTilingGeneratorInput = new GeneratorInput();
-        implicitTilingGeneratorInput.setUrlString(baseUrlString 
-            + "extensions/"+"3DTILES_implicit_tiling"+"/schema/"
-            + "tile" + "." +"3DTILES_implicit_tiling"+".schema.json");
-        implicitTilingGeneratorInput.setHeaderCode(
-            createHeaderCode("3D Tiles "+"3DTILES_implicit_tiling"+" JSON model")); 
-        implicitTilingGeneratorInput.setPackageName(
-            "de.javagl.j3dtiles.impl.ext." + "implicit_tiling");
-        generatorInputs.add(implicitTilingGeneratorInput);
-        
-        GeneratorInput subtreeGeneratorInput = new GeneratorInput();
-        subtreeGeneratorInput.setUrlString(baseUrlString 
-            + "extensions/"+"3DTILES_implicit_tiling"+"/schema/"
-            + "subtree" + "/" + "subtree.schema.json");
-        subtreeGeneratorInput.setHeaderCode(
-            createHeaderCode("3D Tiles " + "3DTILES_implicit_tiling" + " JSON model")); 
-        subtreeGeneratorInput.setPackageName(
-            "de.javagl.j3dtiles.impl.ext." + "implicit_tiling.subtree");
-        generatorInputs.add(subtreeGeneratorInput);
-        
-        
-        File outputDirectory = new File("./data/output");
-        generate(generatorInputs, outputDirectory);
-    }
-
-    
-    /**
-     * Create a {@link ClassGeneratorConfig} that is supposed to be used
-     * for generating the glTF classes
+     * Create a {@link ClassGeneratorConfig} with some unspecified default
+     * settings, mainly for generating the glTF- and 3D Tiles classes.
      * 
      * @return The {@link ClassGeneratorConfig}
      */
-    private static ClassGeneratorConfig createGltfConfig()
+    private static ClassGeneratorConfig createDefaultClassGeneratorConfig()
     {
         ClassGeneratorConfig config = new ClassGeneratorConfig();
         config.set(ClassGeneratorConfig.CREATE_ADDERS_AND_REMOVERS, true);
@@ -228,6 +69,14 @@ public class JsonModelGen
         config.setSkippingValidation(
             "de.javagl.jgltf.impl.v2.Image#mimeType", true);
         
+        // TODO This is only for 3DTILES_Metadata:
+        config.addClassNameOverride("Class", "MetadataClass");
+        config.addClassNameOverride("Enum", "MetadataEnum");
+
+        // TODO This is only for 3DTILES_batch_table_hierarchy:
+        config.addClassNameOverride("BatchTableHierarchyPropertiesClassesItems",
+            "BatchTableHierarchyClass");
+        
         return config;
     }
     
@@ -239,7 +88,7 @@ public class JsonModelGen
      * @param outputDirectory The output directory
      * @throws IOException If an IO error occurs
      */
-    private static void generate(
+    static void generate(
         List<GeneratorInput> generatorInputs, File outputDirectory) 
             throws IOException
     {
@@ -247,17 +96,18 @@ public class JsonModelGen
         NodeRepository nodeRepository = new NodeRepository();
         for (GeneratorInput generatorInput : generatorInputs)
         {
-            URI uri = null;
-            try 
+            String uriString = generatorInput.getUriString();
+            URI uri = URIs.create(uriString);
+            logger.info("  Populating NodeRepository with root URI " + uri);
+
+            List<String> searchUriStrings = generatorInput.getSearchUriStrings();
+            for (String searchUriString : searchUriStrings)
             {
-                uri = new URI(generatorInput.getUrlString());
+                nodeRepository.addSearchUri(
+                    URIs.create(searchUriString));
             }
-            catch (URISyntaxException e)
-            {
-                throw new IOException(e);
-            }
-            logger.info("  Populating NodeRepository with " + uri);
-            nodeRepository.generateNodes(uri);
+            nodeRepository.addRootUri(
+                URIs.create(uriString));
             
         }
         logger.info("Creating NodeRepository DONE");
@@ -269,7 +119,7 @@ public class JsonModelGen
         
         logger.info("Creating ClassGenerator");
         ClassGenerator classGenerator = 
-            new ClassGenerator(createGltfConfig(), 
+            new ClassGenerator(createDefaultClassGeneratorConfig(), 
                 schemaGenerator, generatorInputs);
         logger.info("Creating ClassGenerator DONE");
         
@@ -285,7 +135,7 @@ public class JsonModelGen
      * @param headerTitle The header title
      * @return The header code
      */
-    private static String createHeaderCode(String headerTitle)
+    static String createHeaderCode(String headerTitle)
     {
         String headerCode = 
             "/*\n" +

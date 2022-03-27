@@ -557,7 +557,7 @@ public class JsonUtils
     
     /**
      * Read the JSON node from the given URI. Returns <code>null</code> if
-     * the node could not be read for any reason. Will print a warning if
+     * the node could not be read for any reason. May print a warning if
      * no node could be read.
      *  
      * @param uri The URI to read from
@@ -584,8 +584,8 @@ public class JsonUtils
         {
             exception = e;
         }
-        logger.severe(
-            "Could not read schema from "+uri+
+        logger.fine(
+            "Could not read node from "+uri+
             " - skipping ("+exception.getMessage()+")");
         return null;
     }

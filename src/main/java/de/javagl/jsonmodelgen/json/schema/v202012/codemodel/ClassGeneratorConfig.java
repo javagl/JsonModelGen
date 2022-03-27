@@ -159,6 +159,10 @@ public class ClassGeneratorConfig
      */
     public Class<?> getTypeOverride(String schemaId)
     {
+        if (schemaId == null)
+        {
+            return null;
+        }
         for (Entry<String, Class<?>> entry : typeOverrides.entrySet())
         {
             String key = entry.getKey();

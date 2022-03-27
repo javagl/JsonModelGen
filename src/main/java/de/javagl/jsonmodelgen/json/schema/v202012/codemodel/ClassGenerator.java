@@ -87,12 +87,12 @@ public class ClassGenerator
     /**
      * The log level used for the resolving process
      */
-    private static final Level resolvingLogLevel = Level.FINE;
+    private static final Level resolvingLogLevel = Level.INFO;
 
     /**
      * The log level used for the class creating process
      */
-    private static final Level creatingLogLevel = Level.FINE;
+    private static final Level creatingLogLevel = Level.INFO;
 
     /**
      * An indentation level for log messages
@@ -147,6 +147,8 @@ public class ClassGenerator
                 config.getClassNameOverride(className);
             if (classNameOverride != null)
             {
+                logger.info("Using class name override " + classNameOverride
+                    + " for " + className);
                 className = classNameOverride;
             }
             JDefinedClass definedClass =
@@ -334,7 +336,7 @@ public class ClassGenerator
     private JType doResolveType(Schema schema)
     {
         logger.log(resolvingLogLevel,
-            indent(resolvingLogIndent) + "Resolve " + schema.getTitle());
+            indent(resolvingLogIndent) + "Resolve type for " + SchemaUtils.createShortSchemaDebugString(schema));
         resolvingLogIndent+=4;
         
         JType type = types.get(schema);
@@ -347,8 +349,6 @@ public class ClassGenerator
         if (logger.isLoggable(resolvingLogLevel))
         {
             logger.log(resolvingLogLevel, "resolveType");
-            logger.log(resolvingLogLevel, "    uri       "+
-                schemaGenerator.getCanonicalUri(schema));
             logger.log(resolvingLogLevel, "    schema    "+
                 SchemaUtils.createShortSchemaDebugString(schema));
         }
@@ -372,8 +372,6 @@ public class ClassGenerator
         if (logger.isLoggable(creatingLogLevel))
         {
             logger.log(creatingLogLevel, "createType");
-            logger.log(creatingLogLevel, "    uri       "+
-                schemaGenerator.getCanonicalUri(schema));
             logger.log(creatingLogLevel, "    schema    "+
                 SchemaUtils.createShortSchemaDebugString(schema));
         }
@@ -419,8 +417,6 @@ public class ClassGenerator
         {
             logger.log(creatingLogLevel,
                 "createType: WARNING: Could not create type");
-            logger.log(creatingLogLevel, "    uri       "+
-                schemaGenerator.getCanonicalUri(schema));
             logger.log(creatingLogLevel, "    schema    "+
                 SchemaUtils.createShortSchemaDebugString(schema));
             logger.log(creatingLogLevel, "    using Object.class");
@@ -442,20 +438,9 @@ public class ClassGenerator
         if (logger.isLoggable(creatingLogLevel))
         {
             logger.log(creatingLogLevel, "createObjectType");
-            logger.log(creatingLogLevel, "    uri       "+
-                schemaGenerator.getCanonicalUri(objectSchema));
             logger.log(creatingLogLevel, "    schema    "+
                 SchemaUtils.createShortSchemaDebugString(objectSchema));
         }
-
-//        boolean debug = true;
-//        if (debug)
-//        {
-//            logger.info("    className "+className);
-//            logger.info("    Schema details:");
-//            URI uri = schemaGenerator.getCanonicalUri(objectSchema);
-//            logger.info(SchemaUtils.createSchemaDebugString(uri, objectSchema));
-//        }
 
         // Handle this "implicit extension" workaround. This is somewhat
         // brittle, but the check method already prints a warning...
@@ -473,7 +458,7 @@ public class ClassGenerator
             handleObjectTypeProperties(probableExtension, definedClass);
             handleObjectTypeAdditionalProperties(
                 probableExtension, definedClass);
-        } 
+        }
         else
         {
             handleObjectTypeExtended(definedClass, objectSchema);
@@ -653,6 +638,17 @@ public class ClassGenerator
             }
         }
         
+        Schema ref = objectSchema.getRef();
+        if (ref != null)
+        {
+            Schema extendedSchema = ref;
+            logger.fine("No important properties in "+
+                SchemaUtils.createShortSchemaDebugString(objectSchema)+
+                ", using the type in ref: "+
+                SchemaUtils.createShortSchemaDebugString(extendedSchema));
+            return typeResolver.apply(extendedSchema);
+        }
+        
         // In some cases (like glTF), extensible enumerations are modeled
         // like this:
         // "anyOf": [
@@ -772,16 +768,20 @@ public class ClassGenerator
     }
     
     /**
-     * Returns the schema that is the only element of the "allOf" property
-     * of the given schema, or <code>null</code> if the given schema does
-     * not have an allOf property, or there is NOT exactly one element in
-     * the allOf property
+     * Returns the schema that is the "ref" schema, or the only element 
+     * of the "allOf" property of the given schema, or <code>null</code> 
+     * if the given schema does not have an allOf property, or there is 
+     * NOT exactly one element in the allOf property
      * 
      * @param objectSchema The schema
      * @return The extended schema
      */
     private Schema getExtendedSchema(ObjectSchema objectSchema)
     {
+        if (objectSchema.getRef() != null)
+        {
+            return objectSchema.getRef();
+        }
         List<Schema> allOf = objectSchema.getAllOf();
         if (allOf != null)
         {
@@ -973,7 +973,7 @@ public class ClassGenerator
 
     /**
      * Tries to find the package name for the class that corresponds to
-     * the given schema, based on the {@link Schema#getId()}.
+     * the given schema, based on the {@link Schema#getUri()}.
      * 
      * @param schema The schema
      * @return The package name
@@ -982,24 +982,37 @@ public class ClassGenerator
     {
         try
         {
-            String id = schema.getId();
-            URI schemaBaseUri = new URI(id);
+            URI schemaBaseUri = schema.getUri();
             schemaBaseUri = schemaBaseUri.resolve(".");
             for (GeneratorInput generatorInput : generatorInputs)
             {
-                URI baseUri = new URI(generatorInput.getUrlString());
+                URI baseUri = new URI(generatorInput.getUriString());
                 baseUri = baseUri.resolve(".");
                 if (baseUri.equals(schemaBaseUri))
                 {
                     return generatorInput.getPackageName();
                 }
+                List<String> searchUriStrings = 
+                    generatorInput.getSearchUriStrings();
+                for (String searchUriString : searchUriStrings)
+                {
+                    URI searchUri = new URI(searchUriString);
+                    searchUri = searchUri.resolve(".");
+                    if (searchUri.equals(schemaBaseUri))
+                    {
+                        return generatorInput.getPackageName();
+                    }
+                }
+                
             }
         }
         catch (URISyntaxException e)
         {
             logger.severe(e.getMessage());
         }
-        logger.severe("Could not find package name for schema " + schema);
+        logger.severe("Could not find package name for schema " + 
+            SchemaUtils.createShortSchemaDebugString(schema));
+        logger.severe("Schema URI: " + schema.getUri());
         return "UNKNOWN";
     }
 
@@ -1042,7 +1055,8 @@ public class ClassGenerator
             sb.append("\n");
             sb.append("\n");
         }
-        URI canonicalUri = schemaGenerator.getCanonicalUri(schema);
+        
+        URI canonicalUri = URI.create(schema.getId());
         sb.append("Auto-generated for "+
             StringUtils.extractSchemaName(canonicalUri));
         docComment.append(StringUtils.format(sb.toString(),

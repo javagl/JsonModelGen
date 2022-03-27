@@ -33,7 +33,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Logger;
 
@@ -65,12 +64,10 @@ public class SchemaGeneratorUtils
      * @param uri The URI
      * @param node The node
      * @param propertyName The property name
-     * @param refUriResolver The reference URI resolver
      * @return The URIs
      */
     public static List<URI> getSubUrisArray(
-        URI uri, JsonNode node, String propertyName,
-        BiFunction<URI, String, URI> refUriResolver)
+        URI uri, JsonNode node, String propertyName)
     {
         JsonNode propertyNode = node.get(propertyName);
         if (propertyNode == null)
@@ -92,19 +89,8 @@ public class SchemaGeneratorUtils
         for (int i=0; i<propertyNode.size(); i++)
         {
             String propertyNodeItemName = propertyName+"/"+i;
-            JsonNode propertyNodeItem = propertyNode.get(i);
-            if (propertyNodeItem.has("$ref")) 
-            {
-                JsonNode refNode = propertyNodeItem.get("$ref");
-                String refString = refNode.asText();
-                URI subUri = refUriResolver.apply(uri, refString);
-                subUris.add(subUri);
-            } 
-            else
-            {
-                URI subUri = URIs.appendToFragment(uri, propertyNodeItemName);
-                subUris.add(subUri);
-            }
+            URI subUri = URIs.appendToFragment(uri, propertyNodeItemName);
+            subUris.add(subUri);
         }
         return subUris;
     }
@@ -120,12 +106,10 @@ public class SchemaGeneratorUtils
      * @param uri The URI
      * @param node The node
      * @param propertyName The property name
-     * @param refUriResolver The reference URI resolver
      * @return The URIs
      */
     public static Map<String, URI> getSubUrisMap(
-        URI uri, JsonNode node, String propertyName,
-        BiFunction<URI, String, URI> refUriResolver)
+        URI uri, JsonNode node, String propertyName)
     {
         JsonNode propertyNode = node.get(propertyName);
         if (propertyNode == null)
@@ -149,70 +133,29 @@ public class SchemaGeneratorUtils
         {
             String fieldName = fieldNames.next();
             String propertyNodeItemName = propertyName+"/"+fieldName;
-            JsonNode propertyNodeItem = propertyNode.get(fieldName);
-            if (propertyNodeItem.has("$ref")) 
-            {
-                JsonNode refNode = propertyNodeItem.get("$ref");
-                String refString = refNode.asText();
-                URI subUri = refUriResolver.apply(uri, refString);
-                subUris.put(fieldName, subUri);
-            } 
-            else
-            {
-                URI subUri = URIs.appendToFragment(uri, propertyNodeItemName);
-                subUris.put(fieldName, subUri);
-            }
+            URI subUri = URIs.appendToFragment(uri, propertyNodeItemName);
+            subUris.put(fieldName, subUri);
         }
         return subUris;
     }
     
     /**
-     * Returns a URI that is created by iterating over extracting the 
-     * "$ref" property, or interpreting ther name as a fragment. 
-     * 
-     * @param uri The URI
-     * @param node The node
-     * @param subSchemaFragment The fragment
-     * @param refUriResolver The reference URI resolver
-     * @return The URIs
-     */
-    public static URI getSubUri(
-        URI uri, JsonNode node, String subSchemaFragment, 
-        BiFunction<URI, String, URI> refUriResolver)
-    {
-        if (node.has("$ref"))
-        {
-            JsonNode refNode = node.get("$ref");
-            String refString = refNode.asText();
-            URI refUri = uri.resolve(refString);
-            return refUri.normalize();
-        }
-        URI subUri = URIs.appendToFragment(uri, subSchemaFragment);
-        return subUri;
-    }
-    
-    
-    
-    
-    /**
      * Creates schemas from the URIs that are created by
-     * {@link #getSubUrisArray(URI, JsonNode, String, BiFunction)}.
+     * {@link #getSubUrisArray(URI, JsonNode, String)}.
      * 
      * @param <S> The schema type
      * @param uri The URI
      * @param node The node
      * @param propertyName The property name
-     * @param refUriResolver The reference URI resolver
      * @param schemaResolver The schema resolver
      * @return The schemas
      */
     public static <S> List<S> getSubSchemasArray(
         URI uri, JsonNode node, String propertyName,
-        BiFunction<URI, String, URI> refUriResolver,
         Function<URI, S> schemaResolver)
     {
         List<URI> subUris = getSubUrisArray(
-            uri, node, propertyName, refUriResolver);
+            uri, node, propertyName);
         List<S> subSchemas = new ArrayList<S>();
         for (int i=0; i<subUris.size(); i++)
         {
@@ -225,23 +168,21 @@ public class SchemaGeneratorUtils
     
     /**
      * Creates schemas from the URIs that are created by
-     * {@link #getSubUrisMap(URI, JsonNode, String, BiFunction)}.
+     * {@link #getSubUrisMap(URI, JsonNode, String)}.
      * 
      * @param <S> The schema type
      * @param uri The URI
      * @param node The node
      * @param propertyName The property name
-     * @param refUriResolver The reference URI resolver
      * @param schemaResolver The schema resolver
      * @return The schemas
      */
     public static <S> Map<String, S> getSubSchemasMap(
         URI uri, JsonNode node, String propertyName,
-        BiFunction<URI, String, URI> refUriResolver,
         Function<URI, S> schemaResolver)
     {
         Map<String, URI> subUris = getSubUrisMap(
-            uri, node, propertyName, refUriResolver);
+            uri, node, propertyName);
         Map<String, S> subSchemas = new LinkedHashMap<String, S>();
         for (String key : subUris.keySet())
         {
@@ -254,25 +195,41 @@ public class SchemaGeneratorUtils
     
     /**
      * Creates a schema from the URI that is created by 
-     * {@link #getSubUri(URI, JsonNode, String, BiFunction)}.
+     * {@link #getSubUri(URI, String)}.
      * 
      * @param <S> The schema type
      * @param uri The URI
      * @param node The node
      * @param subSchemaFragment The schema fragment
-     * @param refUriResolver The reference URI resolver
      * @param schemaResolver The schema resolver
      * @return The schemas
      */
     public static <S> S getSubSchema(
         URI uri, JsonNode node, String subSchemaFragment,
-        BiFunction<URI, String, URI> refUriResolver,
         Function<URI, S> schemaResolver)
     {
-        URI subUri = getSubUri(uri, node, subSchemaFragment, refUriResolver);
+        URI subUri = getSubUri(uri, subSchemaFragment);
         S subSchema = schemaResolver.apply(subUri);
         return subSchema;
     }
+    
+    /**
+     * Returns a URI that is created by interpreting the name as a fragment. 
+     * 
+     * @param uri The URI
+     * @param subSchemaFragment The fragment
+     * @return The URIs
+     */
+    public static URI getSubUri(
+        URI uri, String subSchemaFragment)
+    {
+        URI subUri = URIs.appendToFragment(uri, subSchemaFragment);
+        return subUri;
+    }
+    
+    
+    
+    
     
     /**
      * Private constructor to prevent instantiation

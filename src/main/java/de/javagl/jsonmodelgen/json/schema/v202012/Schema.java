@@ -26,6 +26,7 @@
  */
 package de.javagl.jsonmodelgen.json.schema.v202012;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,6 +37,11 @@ import java.util.Set;
  */
 public class Schema
 {
+    /**
+     * The URI
+     */
+    private URI uri;
+    
     /**
      * See {@link #getId()}
      */
@@ -71,6 +77,11 @@ public class Schema
      */
     private Set<String> enumStrings;
 
+    /**
+     * See {@link #getRef()}
+     */
+    private Schema ref;
+    
     /**
      * See {@link #getAllOf()}
      */
@@ -226,7 +237,26 @@ public class Schema
     {
         return null;
     }
-
+    
+    /**
+     * Returns the URI
+     * 
+     * @return The URI
+     */
+    public URI getUri()
+    {
+        return uri;
+    }
+    
+    /**
+     * See {@link #getUri()}
+     * 
+     * @param uri The value
+     */
+    public void setUri(URI uri)
+    {
+        this.uri = uri;
+    }
 
     /**
      * The "$schema" keyword is both used as a JSON Schema version
@@ -371,6 +401,26 @@ public class Schema
         this.enumStrings = enumStrings;
     }
 
+    /**
+     * Returns the reference
+     * 
+     * @return The reference
+     */
+    public Schema getRef()
+    {
+        return ref;
+    }
+    
+    /**
+     * See {@link #getRef()}
+     * 
+     * @param ref The value
+     */
+    public void setRef(Schema ref)
+    {
+        this.ref = ref;
+    }
+    
     /**
      * An instance validates successfully against this keyword if it
      * validates successfully against all schemas defined by this keyword's

@@ -26,6 +26,10 @@
  */
 package de.javagl.jsonmodelgen;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * A class summarizing the input for the {@link JsonModelGen} code generation
  * process.
@@ -35,7 +39,12 @@ public class GeneratorInput
     /**
      * The base URL string for the schema
      */
-    private String urlString;
+    private String uriString;
+    
+    /**
+     * The list of search URI strings
+     */
+    private final List<String> searchUriStrings;
     
     /**
      * The optional header code to be inserted into the classes
@@ -52,27 +61,50 @@ public class GeneratorInput
      */
     public GeneratorInput()
     {
-        // Default constructor
+        this.searchUriStrings = new ArrayList<String>();
     }
     
     /**
-     * Returns the base URL string for the schema
+     * Returns the base URI string for the schema
      *  
      * @return The base URI string
      */
-    public String getUrlString()
+    public String getUriString()
     {
-        return urlString;
+        return uriString;
     }
     
     /**
-     * Set the base URL string for the schema
+     * Set the base URI string for the schema
      * 
-     * @param urlString The base URL string for the schema
+     * @param uriString The base URI string for the schema
      */
-    void setUrlString(String urlString)
+    void setUriString(String uriString)
     {
-        this.urlString = urlString;
+        this.uriString = uriString;
+    }
+    
+    /**
+     * Add the given search URI string
+     * 
+     * @param searchUriString The search URI string
+     */
+    void addSearchUriString(String searchUriString)
+    {
+        if (!this.searchUriStrings.contains(searchUriString))
+        {
+            this.searchUriStrings.add(searchUriString);
+        }
+    }
+    
+    /**
+     * Returns the search URI strings
+     * 
+     * @return The search URI strings
+     */
+    public List<String> getSearchUriStrings()
+    {
+        return Collections.unmodifiableList(searchUriStrings);
     }
     
     /**

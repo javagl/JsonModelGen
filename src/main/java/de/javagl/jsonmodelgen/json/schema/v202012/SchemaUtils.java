@@ -121,6 +121,8 @@ public class SchemaUtils
         append(sb, "default", schema.getDefaultString(), ",\n");
         append(sb, "type", schema.getTypeStrings(), ",\n");
         append(sb, "enum", schema.getEnumStrings(), ",\n");
+        append(sb, "$ref",
+            createShortSchemaDebugString(schema.getRef()), ",\n");
         append(sb, "allOf",
             createShortSchemaDebugString(schema.getAllOf()), ",\n");
         append(sb, "anyOf",

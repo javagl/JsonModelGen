@@ -26,6 +26,7 @@
  */
 package de.javagl.jsonmodelgen.json;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
@@ -34,6 +35,50 @@ import java.net.URISyntaxException;
  */
 public class URIs
 {
+    /**
+     * Returns the given URI without a fragment
+     * 
+     * @param uri The URI
+     * @return The result 
+     */
+    static URI withoutFragment(URI uri)
+    {
+        if (uri.getFragment() == null)
+        {
+            return uri;
+        }
+        try
+        {
+            return new URI(uri.getScheme(), uri.getSchemeSpecificPart(), null);
+        }
+        catch (URISyntaxException e)
+        {
+            // Should never happen here
+            throw new IllegalArgumentException(e);
+        }
+    }
+    
+    /**
+     * Creates a URI from the given string, wrapping possible exceptions
+     * into an IO Exception
+     * 
+     * @param string The string
+     * @return The URI
+     * @throws IOException If there was a URI syntax error
+     */
+    public static URI create(String string) throws IOException
+    {
+        try 
+        {
+            return new URI(string);
+        }
+        catch (URISyntaxException e)
+        {
+            throw new IOException(e);
+        }
+    }
+    
+    
     /**
      * Appends the given string as a fragment to the given URI. 
      * The given string will be after a "/" slash. Examples:
@@ -57,7 +102,7 @@ public class URIs
             {
                 uriString += "#";
             }
-            return new URI(uriString+"/"+string);
+            return new URI(uriString+"/"+string).normalize();
         }
         catch (URISyntaxException e)
         {

@@ -27,7 +27,6 @@
 package de.javagl.jsonmodelgen.json.schema.codemodel;
 
 import java.net.URI;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -145,7 +144,17 @@ public class ClassNameUtils
         }
         else
         {
-            String fileName = Paths.get(uri.getPath()).getFileName().toString();
+            String fileName = uri.toString();
+            int fragmentIndex = uriString.indexOf('#');
+            if (fragmentIndex != -1)
+            {
+                fileName = fileName.substring(0, fragmentIndex);
+            }
+            int lastSlashIndex = uri.toString().lastIndexOf('/');
+            if (lastSlashIndex != -1)
+            {
+                fileName = fileName.substring(lastSlashIndex + 1);
+            }
             fileName = stripSuffixIfPresent(fileName, ".json");
             fileName = stripSuffixIfPresent(fileName, ".schema");
             className = StringUtils.capitalize(fileName);

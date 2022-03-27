@@ -37,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -91,14 +90,6 @@ public final class SchemaGenerator
      * just calls {@link #resolveSchema(URI)}.
      */
     private final Function<URI, Schema> schemaResolver;
-
-    /**
-     * A function that receives a base URI and a string, and resolves
-     * the string (fragment or relative path) against the base URI.
-     * This involves some magic, see 
-     * {@link NodeRepository#resolveRefUri(URI, String)}
-     */
-    private final BiFunction<URI, String, URI> refUriResolver;
     
     /**
      * The mapping from Nodes of the {@link NodeRepository} to {@link Schema}
@@ -125,7 +116,6 @@ public final class SchemaGenerator
     {
         this.nodeRepository = nodeRepository;
         this.schemaResolver = this::resolveSchema;
-        this.refUriResolver = nodeRepository::resolveRefUri;
         this.schemas = new LinkedHashMap<JsonNode, Schema>();
 
         List<URI> rootUris = nodeRepository.getRootUris();
@@ -148,12 +138,10 @@ public final class SchemaGenerator
      */
     private Schema resolveSchema(URI uri)
     {
-        uri = getCanonicalUri(uri);
-
         log("resolveSchema");
-        log("    uri    : "+uri);
+        log("    uri    : " + uri);
 
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
         Schema schema = null;
         
         // Empty nodes should not cause the same ("any")-Schema object to 
@@ -164,7 +152,8 @@ public final class SchemaGenerator
             schema = schemas.get(node);
             if (schema != null)
             {
-                log("    found  : "+schema);
+                log("    found  : "
+                    + SchemaUtils.createShortSchemaDebugString(schema));
                 return schema;
             }
         }
@@ -175,8 +164,8 @@ public final class SchemaGenerator
         processSchema(uri, schema);
 
         log("resolveSchema generated");
-        log("    uri    : "+uri);
-        log("    created: "+schema);
+        log("    uri    : " + uri);
+        log("    created: " + SchemaUtils.createShortSchemaDebugString(schema));
 
         return schema;
     }
@@ -189,11 +178,11 @@ public final class SchemaGenerator
      */
     private Schema generateSchema(URI uri)
     {
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
 
-        log("generateSchema");
-        log("    uri : "+uri);
-        log("    node: "+node);
+        log("generateSchema entry");
+        log("    uri : " + uri);
+        log("    node: " + node);
 
         if (node == null)
         {
@@ -207,12 +196,13 @@ public final class SchemaGenerator
         {
             String typeString = typeStrings.iterator().next();
             Schema schema = SchemaFactory.createSchema(typeString);
-            schema.setId(uri.toString());
+            URI fullSchemaUri = nodeRepository.getFullUri(node);
+            schema.setUri(fullSchemaUri);
             schema.setTypeStrings(typeStrings);
 
             log("generateSchema: Found single type");
-            log("    uri          "+uri);
-            log("    type strings "+typeStrings);
+            log("    uri          " + uri);
+            log("    type strings " + typeStrings);
 
             return schema;
         }
@@ -220,12 +210,13 @@ public final class SchemaGenerator
         if (typeStrings != null && typeStrings.size() > 0)
         {
             ObjectSchema schema = new ObjectSchema();
-            schema.setId(uri.toString());
+            URI fullSchemaUri = nodeRepository.getFullUri(node);
+            schema.setUri(fullSchemaUri);
             schema.setTypeStrings(typeStrings);
 
             log("generateSchema: WARNING: Found multiple types");
-            log("    uri          "+uri);
-            log("    type strings "+typeStrings);
+            log("    uri          " + uri);
+            log("    type strings " + typeStrings);
 
             logger.warning("Found multiple types: "+typeStrings);
 
@@ -251,19 +242,57 @@ public final class SchemaGenerator
         {
             return generateSchemaFromNot(uri, node);
         }
+        if (node.has("$ref"))
+        {
+            return generateSchemaFromRef(uri, node);
+        }
 
         ObjectSchema schema = new ObjectSchema(true);
-        schema.setId(uri.toString());
+        URI fullSchemaUri = nodeRepository.getFullUri(node);
+        schema.setUri(fullSchemaUri);
         schema.setTypeStrings(Collections.singleton("any"));
 
-        log("generateSchema: NOTE: Found no type strings and no " +
-            "extended schema - generate any");
-        log("    uri          "+uri);
-        log("    type strings "+schema.getTypeStrings());
+        log("generateSchema: NOTE: Found no type strings and no "
+            + "extended schema - generate any");
+        log("    uri          " + uri);
+        log("    type strings " + schema.getTypeStrings());
 
         return schema;
     }
 
+    /**
+     * Generate the schema from a node that contains no type, but
+     * a "$ref" property
+     * 
+     * @param uri The URI
+     * @param node The node
+     * @return The schema
+     */
+    private Schema generateSchemaFromRef(URI uri, JsonNode node)
+    {
+        ObjectSchema schema = new ObjectSchema();
+        URI fullSchemaUri = nodeRepository.getFullUri(node);
+        schema.setUri(fullSchemaUri);
+        
+        JsonNode refNode = node.get("$ref");
+        String refString = refNode.textValue();
+        
+        URI refUri = null;
+        if (refString.startsWith("#"))
+        {
+            refUri = uri.resolve(refString);
+        }
+        else
+        {
+            refUri = URI.create(refString);
+        }
+        Schema subSchema = resolveSchema(refUri);
+        schema.setRef(subSchema);
+        schema.setTypeStrings(subSchema.getTypeStrings());
+
+        return schema;
+    }
+    
     /**
      * Generate the schema from a node that contains an "allOf" property
      * 
@@ -274,11 +303,12 @@ public final class SchemaGenerator
     private Schema generateSchemaFromAllOf(URI uri, JsonNode node)
     {
         ObjectSchema schema = new ObjectSchema();
-        schema.setId(uri.toString());
+        URI fullSchemaUri = nodeRepository.getFullUri(node);
+        schema.setUri(fullSchemaUri);
         
         List<Schema> subSchemas =
             SchemaGeneratorUtils.getSubSchemasArray(
-                uri, node, "allOf", refUriResolver, schemaResolver);
+                uri, node, "allOf", schemaResolver);
         Set<String> allTypeStrings = new LinkedHashSet<String>();
         for (Schema subSchema : subSchemas)
         {
@@ -299,10 +329,12 @@ public final class SchemaGenerator
     private Schema generateSchemaFromAnyOf(URI uri, JsonNode node)
     {
         ObjectSchema schema = new ObjectSchema();
-        schema.setId(uri.toString());
+        URI fullSchemaUri = nodeRepository.getFullUri(node);
+        schema.setUri(fullSchemaUri);
+        
         List<Schema> subSchemas =
             SchemaGeneratorUtils.getSubSchemasArray(
-                uri, node, "anyOf", refUriResolver, schemaResolver);
+                uri, node, "anyOf", schemaResolver);
         Set<String> allTypeStrings = new LinkedHashSet<String>();
         for (Schema subSchema : subSchemas)
         {
@@ -323,10 +355,12 @@ public final class SchemaGenerator
     private Schema generateSchemaFromOneOf(URI uri, JsonNode node)
     {
         ObjectSchema schema = new ObjectSchema();
-        schema.setId(uri.toString());
+        URI fullSchemaUri = nodeRepository.getFullUri(node);
+        schema.setUri(fullSchemaUri);
+        
         List<Schema> subSchemas =
             SchemaGeneratorUtils.getSubSchemasArray(
-                uri, node, "oneOf", refUriResolver, schemaResolver);
+                uri, node, "oneOf", schemaResolver);
         Set<String> allTypeStrings = new LinkedHashSet<String>();
         for (Schema subSchema : subSchemas)
         {
@@ -347,12 +381,12 @@ public final class SchemaGenerator
     private Schema generateSchemaFromNot(URI uri, JsonNode node)
     {
         ObjectSchema schema = new ObjectSchema();
-        schema.setId(uri.toString());
+        URI fullSchemaUri = nodeRepository.getFullUri(node);
+        schema.setUri(fullSchemaUri);
         
-        // XXX TODO Use refUriResolver here!
         Schema subSchema =
             SchemaGeneratorUtils.getSubSchema(
-                uri, node, "not", refUriResolver, schemaResolver); 
+                uri, node, "not", schemaResolver); 
         schema.setNot(subSchema);
         return schema;
     }
@@ -371,8 +405,8 @@ public final class SchemaGenerator
     private void processSchema(URI uri, Schema schema)
     {
         log("processSchema");
-        log("    uri    "+uri);
-        log("    schema "+schema);
+        log("    uri    " + uri);
+        log("    schema " + SchemaUtils.createShortSchemaDebugString(schema));
 
         processBasicSchema(uri, schema);
 
@@ -398,7 +432,7 @@ public final class SchemaGenerator
     /**
      * Set the properties that are common for each {@link Schema},
      * according to the values that are obtained from the
-     * {@link #getNode(URI) node for the given URI}.
+     * {@link #resolveNode(URI) node for the given URI}.
      * <ul>
      *   <li>{@link Schema#setSchemaString(String)}</li>
      *   <li>{@link Schema#setTitle(String)}</li>
@@ -406,6 +440,7 @@ public final class SchemaGenerator
      *   <li>{@link Schema#setId(String)}</li>
      *   <li>{@link Schema#setFormat(String)}</li>
      *   <li>{@link Schema#setDefaultString(String)}</li>
+     *   <li>{@link Schema#setRef(Schema)}</li>
      *   <li>{@link Schema#setAllOf(List)}</li>
      *   <li>{@link Schema#setAnyOf(List)}</li>
      *   <li>{@link Schema#setOneOf(List)}</li>
@@ -420,10 +455,10 @@ public final class SchemaGenerator
     private void processBasicSchema(URI uri, Schema schema)
     {
         log("processBasicSchema");
-        log("    uri    "+uri);
-        log("    schema "+schema);
+        log("    uri    " + uri);
+        log("    schema " + SchemaUtils.createShortSchemaDebugString(schema));
 
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
 
         schema.setSchemaString(
             JsonUtils.getStringOptional(node, "$schema", null));
@@ -431,25 +466,27 @@ public final class SchemaGenerator
             JsonUtils.getStringOptional(node, "title", null));
         schema.setDescription(
             JsonUtils.getStringOptional(node, "description", null));
-        if (schema.getId() == null)
+
+        String idString = JsonUtils.getStringOptional(node, "$id", null);
+        if (idString != null)
         {
-            String idString = JsonUtils.getStringOptional(node, "$id", null);
-            if (idString != null)
-            {
-                schema.setId(idString);
-            } 
-            else
-            {
-                // LEGACY_SCHEMA_DRAFT_V4
-                String legacyIdString = 
-                    JsonUtils.getStringOptional(node, "id", null);
-                schema.setId(legacyIdString);
-                // LEGACY_SCHEMA_DRAFT_V4
-            }
-            
-            
-            
+            schema.setId(idString);
+        } 
+        else
+        {
+            // LEGACY_SCHEMA_DRAFT_V4
+            String legacyIdString = 
+                JsonUtils.getStringOptional(node, "id", null);
+            schema.setId(legacyIdString);
+            // LEGACY_SCHEMA_DRAFT_V4
         }
+        
+        // XXX 
+        System.out.println("Schema ID");
+        System.out.println("    is " + schema.getId());
+        System.out.println("    uri " + schema.getUri());
+        System.out.println("    for " + SchemaUtils.createShortSchemaDebugString(schema));
+        
         schema.setFormat(
             JsonUtils.getStringOptional(node, "format", null));
         if (node.has("default"))
@@ -481,7 +518,7 @@ public final class SchemaGenerator
         {
             List<Schema> subSchemas =
                 SchemaGeneratorUtils.getSubSchemasArray(
-                    uri, node, "allOf", refUriResolver, schemaResolver);
+                    uri, node, "allOf", schemaResolver);
             schema.setAllOf(subSchemas);
             if (schema.getTypeStrings() == null)
             {
@@ -492,7 +529,7 @@ public final class SchemaGenerator
         {
             List<Schema> subSchemas =
                 SchemaGeneratorUtils.getSubSchemasArray(
-                    uri, node, "anyOf", refUriResolver, schemaResolver);
+                    uri, node, "anyOf", schemaResolver);
             schema.setAnyOf(subSchemas);
             if (schema.getTypeStrings() == null)
             {
@@ -503,7 +540,7 @@ public final class SchemaGenerator
         {
             List<Schema> subSchemas =
                 SchemaGeneratorUtils.getSubSchemasArray(
-                    uri, node, "oneOf", refUriResolver, schemaResolver);
+                    uri, node, "oneOf", schemaResolver);
             schema.setOneOf(subSchemas);
             if (schema.getTypeStrings() == null)
             {
@@ -514,15 +551,39 @@ public final class SchemaGenerator
         {
             Schema subSchema =
                 SchemaGeneratorUtils.getSubSchema(
-                    uri, node.get("not"), "not", refUriResolver, schemaResolver);
+                    uri, node, "not", schemaResolver);
             schema.setNot(subSchema);
+        }
+        if (node.has("$ref"))
+        {
+//            Schema subSchema =
+//                SchemaGeneratorUtils.getSubSchema(
+//                    uri, node, "$ref", schemaResolver);
+//            schema.setRef(subSchema);
+            
+            JsonNode refNode = node.get("$ref");
+            String refString = refNode.textValue();
+            
+            URI refUri = null;
+            if (refString.startsWith("#"))
+            {
+                refUri = uri.resolve(refString);
+            }
+            else
+            {
+                refUri = URI.create(refString);
+            }
+            Schema subSchema = resolveSchema(refUri);
+            schema.setRef(subSchema);
+            schema.setTypeStrings(subSchema.getTypeStrings());
+            
         }
         
         if (node.has("definitions"))
         {
             Map<String, Schema> subSchemas =
                 SchemaGeneratorUtils.getSubSchemasMap(
-                    uri, node, "definitions", refUriResolver, schemaResolver);
+                    uri, node, "definitions", schemaResolver);
             schema.setDefinitions(subSchemas);
         }
 
@@ -564,7 +625,7 @@ public final class SchemaGenerator
     /**
      * Set the properties that are specific for a {@link StringSchema},
      * according to the values that are obtained from the
-     * {@link #getNode(URI) node for the given URI}.
+     * {@link #resolveNode(URI) node for the given URI}.
      * <ul>
      *   <li>{@link StringSchema#setMaxLength(Integer)}</li>
      *   <li>{@link StringSchema#setMinLength(Integer)}</li>
@@ -577,10 +638,10 @@ public final class SchemaGenerator
     private void processStringSchema(URI uri, StringSchema schema)
     {
         log("processStringSchema");
-        log("    uri    "+uri);
-        log("    schema "+schema);
+        log("    uri    " + uri);
+        log("    schema " + SchemaUtils.createShortSchemaDebugString(schema));
 
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
         schema.setMaxLength(
             JsonUtils.getIntegerMinOptional(node, "maxLength", 0, null));
         schema.setMinLength(
@@ -592,7 +653,7 @@ public final class SchemaGenerator
     /**
      * Set the properties that are specific for a {@link NumberSchema},
      * according to the values that are obtained from the
-     * {@link #getNode(URI) node for the given URI}.
+     * {@link #resolveNode(URI) node for the given URI}.
      * <ul>
      *   <li>{@link NumberSchema#setMultipleOf(Number)}</li>
      *   <li>{@link NumberSchema#setMaximum(Number)}</li>
@@ -607,10 +668,10 @@ public final class SchemaGenerator
     private void processNumberSchema(URI uri, NumberSchema schema)
     {
         log("processNumberSchema");
-        log("    uri    "+uri);
-        log("    schema "+schema);
+        log("    uri    " + uri);
+        log("    schema " + SchemaUtils.createShortSchemaDebugString(schema));
 
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
         schema.setMultipleOf(
             JsonUtils.getNumberOptional(
                 node, "multipleOf", 0.0, true, null, false, null));
@@ -657,7 +718,7 @@ public final class SchemaGenerator
     /**
      * Set the properties that are specific for a {@link ArraySchema},
      * according to the values that are obtained from the
-     * {@link #getNode(URI) node for the given URI}.
+     * {@link #resolveNode(URI) node for the given URI}.
      * <ul>
      *   <li>{@link ArraySchema#setMaxItems(Integer)}</li>
      *   <li>{@link ArraySchema#setMinItems(Integer)}</li>
@@ -672,10 +733,10 @@ public final class SchemaGenerator
     private void processArraySchema(URI uri, ArraySchema schema)
     {
         log("processArraySchema");
-        log("    uri    "+uri);
-        log("    schema "+schema);
+        log("    uri    " + uri);
+        log("    schema " + SchemaUtils.createShortSchemaDebugString(schema));
 
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
         schema.setMaxItems(
             JsonUtils.getIntegerMinOptional(node, "maxItems", 0, null));
         schema.setMinItems(
@@ -691,7 +752,7 @@ public final class SchemaGenerator
 
     /**
      * Process all <code>"items"</code> entries of the
-     * {@link #getNode(URI) node for the given URI}, and set the
+     * {@link #resolveNode(URI) node for the given URI}, and set the
      * resulting collection of {@link Schema} instances as the
      * {@link ArraySchema#setItems(Schema) items} of the given
      * {@link ArraySchema}.
@@ -702,13 +763,13 @@ public final class SchemaGenerator
     private void processArraySchemaItems(
         URI uri, ArraySchema schema)
     {
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
         JsonNode itemsNode = node.get("items");
         URI itemsNodeUri = URIs.appendToFragment(uri, "items");
 
         log("processArraySchemaItems:");
-        log("    itemsNodeUri "+itemsNodeUri);
-        log("    itemsNode    "+itemsNode);
+        log("    itemsNodeUri " + itemsNodeUri);
+        log("    itemsNode    " + itemsNode);
         Schema items = schemaResolver.apply(itemsNodeUri);
 
         schema.setItems(items);
@@ -717,7 +778,7 @@ public final class SchemaGenerator
     /**
      * Set the properties that are specific for a {@link ObjectSchema},
      * according to the values that are obtained from the
-     * {@link #getNode(URI) node for the given URI}.<br>
+     * {@link #resolveNode(URI) node for the given URI}.<br>
      * <br>
      * If the node has an <code>"properties"</code> entry,
      * then this will be processed by
@@ -740,10 +801,10 @@ public final class SchemaGenerator
     private void processObjectSchema(URI uri, ObjectSchema schema)
     {
         log("processObjectSchema");
-        log("    uri    "+uri);
-        log("    schema "+schema);
+        log("    uri    " + uri);
+        log("    schema " + SchemaUtils.createShortSchemaDebugString(schema));
 
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
         if (node.has("required"))
         {
             URI requiredUri =
@@ -768,7 +829,7 @@ public final class SchemaGenerator
             // TODO ObjectSchema patternProperties are not processed yet
             //JsonNode patternPropertiesNode = node.get("patternProperties");
             log("processObjectSchema WARNING: does not handle patternProperties");
-            log("    uri    "+uri);
+            log("    uri    " + uri);
 
             // XXX patternProperties are not handled yet
             logger.warning("patternProperties are not handled yet");
@@ -778,7 +839,7 @@ public final class SchemaGenerator
         {
             // TODO ObjectSchema dependentRequired are not processed yet
             log("processObjectSchema WARNING: does not handle dependentRequired");
-            log("    uri    "+uri);
+            log("    uri    " + uri);
             logger.warning("dependentRequired are not handled yet");
         }
 
@@ -787,7 +848,7 @@ public final class SchemaGenerator
         {
             // TODO ObjectSchema dependencies are not processed yet
             log("processObjectSchema WARNING: does not handle dependencies");
-            log("    uri    "+uri);
+            log("    uri    " + uri);
             logger.warning("dependencies are not handled yet");
         }
         // LEGACY_SCHEMA_DRAFT_V4
@@ -796,7 +857,7 @@ public final class SchemaGenerator
 
     /**
      * Process the required properties that are contained in the
-     * {@link #getNode(URI) node for the given URI}, and
+     * {@link #resolveNode(URI) node for the given URI}, and
      * assign them as the {@link ObjectSchema#setRequired(List) required}
      * list in the given {@link ObjectSchema}
      *
@@ -806,7 +867,7 @@ public final class SchemaGenerator
     private void processObjectSchemaRequired(
         URI uri, ObjectSchema schema)
     {
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
         if (node.isArray())
         {
             List<String> required = new ArrayList<String>();
@@ -821,7 +882,7 @@ public final class SchemaGenerator
 
     /**
      * Process the properties that are contained in the
-     * {@link #getNode(URI) node for the given URI}, and
+     * {@link #resolveNode(URI) node for the given URI}, and
      * assign them as the {@link ObjectSchema#setProperties(Map) properties}
      * to the given {@link ObjectSchema}
      *
@@ -831,7 +892,12 @@ public final class SchemaGenerator
     private void processObjectSchemaProperties(
         URI uri, ObjectSchema schema)
     {
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
+        if (node == null)
+        {
+            logger.warning("Could not resolve node for object schema " + uri);
+            return;
+        }
         Map<String, Schema> properties = new LinkedHashMap<String, Schema>();
         Iterator<Entry<String, JsonNode>> fields = node.fields();
         while (fields.hasNext())
@@ -842,8 +908,8 @@ public final class SchemaGenerator
             URI propertyUri = URIs.appendToFragment(uri, fieldName);
 
             log("processObjectSchemaProperties");
-            log("    propertyUri    "+propertyUri);
-            log("    fieldValue     "+fieldValue);
+            log("    propertyUri    " + propertyUri);
+            log("    fieldValue     " + fieldValue);
 
             Schema propertySchema = schemaResolver.apply(propertyUri);
             properties.put(fieldName, propertySchema);
@@ -866,14 +932,14 @@ public final class SchemaGenerator
     private void processObjectSchemaAdditionalProperties(
         URI uri, ObjectSchema schema)
     {
-        JsonNode node = getNode(uri);
+        JsonNode node = resolveNode(uri);
         if (node.isBoolean())
         {
             if (node.asBoolean())
             {
                 // TODO Generate a schema that accepts everything.
-                log("processObjectSchemaAdditionalProperties: " +
-                    "Generate schema for additionalProperties node "+node);
+                log("processObjectSchemaAdditionalProperties: " 
+                    + "Generate schema for additionalProperties node " + node);
                 schema.setAdditionalProperties(null);
             }
             else
@@ -884,25 +950,12 @@ public final class SchemaGenerator
         else
         {
             log("processObjectSchemaAdditionalProperties");
-            log("    uri  "+uri);
-            log("    node "+node);
+            log("    uri  " + uri);
+            log("    node " + node);
 
             Schema additionalPropertiesSchema = schemaResolver.apply(uri);
             schema.setAdditionalProperties(additionalPropertiesSchema);
         }
-    }
-
-
-    /**
-     * Returns the canonical URI for the given URI, as obtained by
-     * {@link NodeRepository#getCanonicalUri(URI)}.
-     *
-     * @param uri The URI
-     * @return The canonical URI
-     */
-    private URI getCanonicalUri(URI uri)
-    {
-        return nodeRepository.getCanonicalUri(uri);
     }
 
     /**
@@ -915,25 +968,6 @@ public final class SchemaGenerator
     public List<URI> getUris(Schema schema)
     {
         return schemaToUris.get(schema);
-    }
-
-    /**
-     * Returns the canonical URI for the given {@link Schema}. If there is
-     * a basic URI (for example, one without fragments) that points to the
-     * same {@link Schema} as the given URI, then this basic URI is returned.
-     * Otherwise, the given URI is returned as it is
-     *
-     * @param schema The {@link Schema}
-     * @return The canonical URI
-     */
-    public URI getCanonicalUri(Schema schema)
-    {
-        List<URI> uris = schemaToUris.get(schema);
-        if (uris == null || uris.size() < 1)
-        {
-            return null;
-        }
-        return getCanonicalUri(uris.get(0));
     }
 
     /**
@@ -950,7 +984,14 @@ public final class SchemaGenerator
         {
             JsonNode rootNode = rootNodes.get(i);
             Schema schema = schemas.get(rootNode);
-            rootSchemas.add(schema);
+            if (schema == null)
+            {
+                logger.warning("No schema for " + rootNode);
+            }
+            else
+            {
+                rootSchemas.add(schema);
+            }
         }
         return rootSchemas;
     }
@@ -961,9 +1002,9 @@ public final class SchemaGenerator
      * @param uri The URI
      * @return The node
      */
-    private JsonNode getNode(URI uri)
+    private JsonNode resolveNode(URI uri)
     {
-        return nodeRepository.get(uri);
+        return nodeRepository.resolveNode(uri);
     }
 
     /**
