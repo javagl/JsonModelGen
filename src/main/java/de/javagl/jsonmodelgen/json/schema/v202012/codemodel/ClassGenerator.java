@@ -1080,6 +1080,13 @@ public class ClassGenerator
             // This should probably never be the case
             return codeModel.ref(Object.class);
         }
+        
+        // TODO XXX Preliminary, to be verified
+        if (items.getRef() != null)
+        {
+            items = items.getRef();
+        }
+        
         JType itemType = typeResolver.apply(items);
 
         if (arraySchema.getMinItems() != null &&

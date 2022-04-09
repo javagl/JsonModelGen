@@ -270,7 +270,14 @@ class CodeModelDocs
             }
         }
         descriptionLines.add("Array elements:");
+        
         Schema itemSchema = arrayPropertySchema.getItems();
+        // TODO XXX Preliminary, to be verified
+        if (itemSchema.getRef() != null)
+        {
+            itemSchema = itemSchema.getRef();
+        }
+        
         List<String> itemDescriptionLines = 
             createDescriptionLines(
                 "array", "elements", itemSchema, false);

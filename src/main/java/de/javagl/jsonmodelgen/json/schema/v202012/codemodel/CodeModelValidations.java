@@ -548,6 +548,12 @@ class CodeModelValidations
         String elementName = propertyName+"Element";
         Schema itemSchema = arraySchema.getItems();
 
+        // TODO XXX Preliminary, to be verified
+        if (itemSchema.getRef() != null)
+        {
+            itemSchema = itemSchema.getRef();
+        }
+        
         JBlock forEachBodyBlock = new JBlock();
         createValidationStatements(forEachBodyBlock, codeModel, elementName,
             elementType, itemSchema);
