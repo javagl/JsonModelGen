@@ -65,7 +65,7 @@ public final class SchemaGenerator
     /**
      * The debug log level
      */
-    private static final Level level = Level.INFO;
+    private static final Level level = Level.FINE;
 
     /**
      * Debug logging utility method
@@ -480,12 +480,6 @@ public final class SchemaGenerator
             schema.setId(legacyIdString);
             // LEGACY_SCHEMA_DRAFT_V4
         }
-        
-        // XXX 
-        System.out.println("Schema ID");
-        System.out.println("    is " + schema.getId());
-        System.out.println("    uri " + schema.getUri());
-        System.out.println("    for " + SchemaUtils.createShortSchemaDebugString(schema));
         
         schema.setFormat(
             JsonUtils.getStringOptional(node, "format", null));
