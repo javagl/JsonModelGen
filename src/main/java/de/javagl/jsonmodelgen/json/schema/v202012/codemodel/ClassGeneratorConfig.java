@@ -68,7 +68,7 @@ public class ClassGeneratorConfig
     
     /**
      * The mapping from regular expressions (that are applied to schema
-     * IDs) to fixed types that should be used for the respective code
+     * URIs) to fixed types that should be used for the respective code
      * element.
      * 
      * @see #addTypeOverride(String, Class)
@@ -130,7 +130,7 @@ public class ClassGeneratorConfig
     
     /**
      * Add the given override for a type, based on a regular expression
-     * that is matched against the schema ID.
+     * that is matched against the schema URI string.
      * 
      * This is a clumsy workaround for the glTF accessor.min/max properties
      * that are translated to Number[] arrays, to make sure that they can 
@@ -140,33 +140,33 @@ public class ClassGeneratorConfig
      * 
      * See https://github.com/KhronosGroup/glTF-Validator/issues/8
      * 
-     * @param schemaIdRegex The regular expression for the schema ID
+     * @param schemaUriRegex The regular expression for the schema URI
      * @param type The type
      */
-    public void addTypeOverride(String schemaIdRegex, Class<?> type)
+    public void addTypeOverride(String schemaUriRegex, Class<?> type)
     {
-        typeOverrides.put(schemaIdRegex, type);
+        typeOverrides.put(schemaUriRegex, type);
     }
     
     /**
-     * Returns the type override for the given schema ID, or <code>null</code>
+     * Returns the type override for the given schema URI, or <code>null</code>
      * if no type override was defined.
      * 
      * @see #addTypeOverride(String, Class)
      * 
-     * @param schemaId The schema ID
+     * @param schemaUri The schema URI
      * @return The type override
      */
-    public Class<?> getTypeOverride(String schemaId)
+    public Class<?> getTypeOverride(String schemaUri)
     {
-        if (schemaId == null)
+        if (schemaUri == null)
         {
             return null;
         }
         for (Entry<String, Class<?>> entry : typeOverrides.entrySet())
         {
             String key = entry.getKey();
-            if (schemaId.matches(key))
+            if (schemaUri.matches(key))
             {
                 return entry.getValue();
             }

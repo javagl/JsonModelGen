@@ -86,7 +86,8 @@ public class SchemaUtils
             "type="+schema.getClass().getSimpleName()+", " +
             "title="+schema.getTitle()+", " +
             "id="+schema.getId()+", " +
-            "description="+schema.getDescription()+"]";
+            "description="+schema.getDescription()+", "+
+            "uri="+schema.getUri()+"]";
     }
 
     /**

@@ -121,12 +121,12 @@ public class ClassGenerator
         @Override
         public JType createType(Schema schema)
         {
-            String id = schema.getId();
-            Class<?> typeOverride = config.getTypeOverride(id);
+            String uri = schema.getUri().toString();
+            Class<?> typeOverride = config.getTypeOverride(uri);
             if (typeOverride != null)
             {
                 logger.info(
-                    "Using type override " + typeOverride + " for " + id);
+                    "Using type override " + typeOverride + " for " + uri);
                 return codeModel._ref(typeOverride);
             }
             return doCreateType(schema);
@@ -823,7 +823,8 @@ public class ClassGenerator
             ObjectSchema ancestorObjectSchema = ancestorSchema.asObject();
             Map<String, Schema> ancestorProperties = 
                 ancestorObjectSchema.getProperties();
-            if (ancestorProperties.containsKey(propertyName))
+            if (ancestorProperties != null && 
+                ancestorProperties.containsKey(propertyName))
             {
                 return true;
             }
@@ -1056,9 +1057,9 @@ public class ClassGenerator
             sb.append("\n");
         }
         
-        URI canonicalUri = URI.create(schema.getId());
-        sb.append("Auto-generated for "+
-            StringUtils.extractSchemaName(canonicalUri));
+        String generationSourceName = 
+            StringUtils.extractSchemaName(schema.getUri()); 
+        sb.append("Auto-generated for "+ generationSourceName);
         docComment.append(StringUtils.format(sb.toString(),
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH));
         return definedClass;
