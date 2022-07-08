@@ -150,7 +150,7 @@ public class ClassNameUtils
             {
                 fileName = fileName.substring(0, fragmentIndex);
             }
-            int lastSlashIndex = uri.toString().lastIndexOf('/');
+            int lastSlashIndex = fileName.lastIndexOf('/');
             if (lastSlashIndex != -1)
             {
                 fileName = fileName.substring(lastSlashIndex + 1);
