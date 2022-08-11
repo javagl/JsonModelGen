@@ -183,7 +183,7 @@ public class ClassGenerator
         @Override
         public JType createNumberType(NumberSchema schema)
         {
-            return codeModel.ref(Float.class);
+            return codeModel.ref(config.getNumberType());
         }
 
         @Override

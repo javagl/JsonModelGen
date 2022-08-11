@@ -55,7 +55,7 @@ public class JsonModelGen
      * 
      * @return The {@link ClassGeneratorConfig}
      */
-    private static ClassGeneratorConfig createDefaultClassGeneratorConfig()
+    public static ClassGeneratorConfig createDefaultClassGeneratorConfig()
     {
         ClassGeneratorConfig config = new ClassGeneratorConfig();
         config.set(ClassGeneratorConfig.CREATE_ADDERS_AND_REMOVERS, true);
@@ -86,9 +86,10 @@ public class JsonModelGen
      * 
      * @param generatorInputs The {@link GeneratorInput} objects
      * @param outputDirectory The output directory
+     * @param config The {@link ClassGeneratorConfig}
      * @throws IOException If an IO error occurs
      */
-    static void generate(
+    static void generate(ClassGeneratorConfig config,
         List<GeneratorInput> generatorInputs, File outputDirectory) 
             throws IOException
     {
@@ -119,7 +120,7 @@ public class JsonModelGen
         
         logger.info("Creating ClassGenerator");
         ClassGenerator classGenerator = 
-            new ClassGenerator(createDefaultClassGeneratorConfig(), 
+            new ClassGenerator(config, 
                 schemaGenerator, generatorInputs);
         logger.info("Creating ClassGenerator DONE");
         

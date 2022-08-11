@@ -91,6 +91,11 @@ public class ClassGeneratorConfig
     private final Set<String> skippingValidationFullPropertyNames;
     
     /**
+     * The default number type (Float or Double)
+     */
+    private Class<?> numberType;
+    
+    /**
      * Creates a new instance with all flags being <code>false</code>
      */
     public ClassGeneratorConfig()
@@ -99,6 +104,7 @@ public class ClassGeneratorConfig
         this.typeOverrides = new LinkedHashMap<String, Class<?>>();
         this.classNameOverrides = new LinkedHashMap<String, String>();
         this.skippingValidationFullPropertyNames = new HashSet<String>();
+        this.numberType = Float.class;
     }
     
     /**
@@ -239,6 +245,26 @@ public class ClassGeneratorConfig
     public boolean isSkippingValidation(String fullPropertyName)
     {
         return skippingValidationFullPropertyNames.contains(fullPropertyName);
+    }
+    
+    /**
+     * Set the default number type (Float or Double)
+     * 
+     * @param numberType The number type
+     */
+    public void setNumberType(Class<?> numberType)
+    {
+        this.numberType = numberType;
+    }
+    
+    /**
+     * Returns the default number type (Float or Double)
+     * 
+     * @return The number type
+     */
+    public Class<?> getNumberType()
+    {
+        return numberType;
     }
     
     
