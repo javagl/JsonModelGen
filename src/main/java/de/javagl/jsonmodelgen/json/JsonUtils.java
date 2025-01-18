@@ -127,7 +127,7 @@ public class JsonUtils
      * or the given fallback value if no such element could be found.
      * If the specified child node is an array, then the elements 
      * of this array will be returned as a list of strings, converted
-     * with <code>JsonNode#toString</code>. 
+     * with <code>JsonNode#asText</code>. 
      * 
      * @param node The node
      * @param name The name of the value
@@ -176,7 +176,7 @@ public class JsonUtils
     
     /**
      * Returns a list containing one string for each node of the given 
-     * collection, created with <code>JsonNode#toString</code>}
+     * collection, created with <code>JsonNode#asText</code>}
      * 
      * @param nodes The collection
      * @return The strings
@@ -187,7 +187,7 @@ public class JsonUtils
         List<String> result = new ArrayList<String>();
         for (JsonNode n : nodes)
         {
-            result.add(n.toString());
+            result.add(n.asText());
         }
         return result;
     }
@@ -336,7 +336,7 @@ public class JsonUtils
             {
                 result = n.asInt();
             }
-            else
+            else if (n.isNumber())
             {
                 result = n.asDouble();
             }
@@ -557,7 +557,7 @@ public class JsonUtils
     
     /**
      * Read the JSON node from the given URI. Returns <code>null</code> if
-     * the node could not be read for any reason. Will print a warning if
+     * the node could not be read for any reason. May print a warning if
      * no node could be read.
      *  
      * @param uri The URI to read from
@@ -584,8 +584,8 @@ public class JsonUtils
         {
             exception = e;
         }
-        logger.warning(
-            "Could not read schema from "+uri+
+        logger.fine(
+            "Could not read node from "+uri+
             " - skipping ("+exception.getMessage()+")");
         return null;
     }

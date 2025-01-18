@@ -47,6 +47,7 @@ import com.sun.codemodel.JType;
 
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModelInitializers;
 import de.javagl.jsonmodelgen.json.schema.codemodel.CodeModels;
+import de.javagl.jsonmodelgen.json.schema.codemodel.NameUtils;
 import de.javagl.jsonmodelgen.json.schema.codemodel.StringUtils;
 import de.javagl.jsonmodelgen.json.schema.v202012.Schema;
 
@@ -58,50 +59,61 @@ class CodeModelMethods
     
     /**
      * Add a "setter" for the specified property in the given class
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @param isRequired Whether the property is required
+     *
+     * @param propertyInfo The {@link PropertyInfo}
+     * @param performValidation Whether validation statements should be added
      * @return The setter method
      */
     static JMethod addSetter(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema, boolean isRequired)
+        PropertyInfo propertyInfo, boolean performValidation)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        Schema propertySchema = propertyInfo.getPropertySchema();
+        boolean isRequired = propertyInfo.isRequired();
+
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         JCodeModel codeModel = definedClass.owner();
-        String methodName = "set" + StringUtils.capitalize(propertyName);
+        String methodName = 
+            "set" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
-        method.param(propertyType, propertyName);
+        method.param(propertyType, sanitizedPropertyName);
         JBlock block = method.body();
 
         JBlock nullHandlingStatements = new JBlock();
         CodeModelValidations.createNullHandlingStatements(
             nullHandlingStatements, codeModel, 
-            propertyName, propertyType, propertySchema, isRequired);
+            sanitizedPropertyName, propertyType, propertySchema, isRequired);
         addAllStatements(block, nullHandlingStatements);
         
         JBlock validationStatements = new JBlock();
-        CodeModelValidations.createValidationStatements(
-            validationStatements, codeModel, 
-            propertyName, propertyType, propertySchema);
-        addAllStatements(block, validationStatements);
+        if (performValidation)
+        {
+            CodeModelValidations.createValidationStatements(
+                validationStatements, codeModel, 
+                sanitizedPropertyName, propertyType, propertySchema);
+            addAllStatements(block, validationStatements);
+        }
 
         block.assign(
-            JExpr._this().ref(propertyName), 
-            JExpr.ref(propertyName));
+            JExpr._this().ref(sanitizedPropertyName), 
+            JExpr.ref(sanitizedPropertyName));
 
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
         String description = CodeModelDocs.createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema, isRequired);
+            definedClass.name(), sanitizedPropertyName, 
+            propertySchema, isRequired);
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
-        sb.append("@param "+propertyName+" The "+propertyName+" to set");
+        sb.append("@param "+sanitizedPropertyName
+            +" The "+sanitizedPropertyName+" to set");
         if (isRequired)
         {
             sb.append("\n");
@@ -122,33 +134,36 @@ class CodeModelMethods
     /**
      * Add a "getter" for the specified property in the given class
      * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @param isRequired Whether the property is required
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The getter method
      */
-    static JMethod addGetter(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema, boolean isRequired)
+    static JMethod addGetter(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        Schema propertySchema = propertyInfo.getPropertySchema();
+        boolean isRequired = propertyInfo.isRequired();
+        
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         JCodeModel codeModel = definedClass.owner();
         String methodName = getGetterMethodName(
-            codeModel, propertyName, propertyType);
+            codeModel, sanitizedPropertyName, propertyType);
         JMethod method = definedClass.method(
             JMod.PUBLIC, propertyType, methodName);
         JBlock block = method.body();
-        block._return(JExpr._this().ref(propertyName));
+        block._return(JExpr._this().ref(sanitizedPropertyName));
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
         String description = CodeModelDocs.createJavaDocDescription(
-            definedClass.name(), propertyName, propertySchema, isRequired);
+            definedClass.name(), sanitizedPropertyName, propertySchema, isRequired);
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
-        sb.append("@return The "+propertyName);
+        sb.append("@return The "+sanitizedPropertyName);
         docComment.append(sb.toString());
         
         return method;
@@ -178,19 +193,22 @@ class CodeModelMethods
      * Add a method for the specified property in the given class,
      * that returns the default value
      * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
+     * @param propertyInfo The {@link PropertyInfo} 
      * @return The method
      */
-    static JMethod addDefaultGetter(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+    static JMethod addDefaultGetter(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        Schema propertySchema = propertyInfo.getPropertySchema();
+
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         JCodeModel codeModel = definedClass.owner();
         String methodName =
-            "default" + StringUtils.capitalize(propertyName);
+            "default" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, propertyType, methodName);
         JBlock block = method.body();
@@ -210,14 +228,14 @@ class CodeModelMethods
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
         String getterMethodName = getGetterMethodName(
-            codeModel, propertyName, propertyType);
+            codeModel, sanitizedPropertyName, propertyType);
         String description = CodeModelDocs.createJavaDoc(Arrays.asList(
-            "Returns the default value of the " + propertyName,
+            "Returns the default value of the " + sanitizedPropertyName,
             "@see #"+getterMethodName));
         sb.append(StringUtils.format(description, 
             CodeModelDocs.MAX_COMMENT_LINE_LENGTH)+"\n");
         sb.append("\n");
-        sb.append("@return The default " + propertyName);
+        sb.append("@return The default " + sanitizedPropertyName);
         docComment.append(sb.toString());
         
         return method;
@@ -227,19 +245,18 @@ class CodeModelMethods
     /**
      * Add an "adder" for the specified property in the given class, 
      * whose type must be a subtype of "Map"
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
+     *
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "Map"
      */
-    static JMethod addAdderForMap(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+    static JMethod addAdderForMap(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        
         if (!CodeModels.isSubtypeOf(propertyType, Map.class))
         {
             throw new IllegalArgumentException(
@@ -248,8 +265,11 @@ class CodeModelMethods
         }
         JCodeModel codeModel = definedClass.owner();
         
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         String methodName = 
-            "add" + StringUtils.capitalize(propertyName);
+            "add" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
         
@@ -270,7 +290,8 @@ class CodeModelMethods
             nullCheckStatements, codeModel, "value");
         addAllStatements(block, nullCheckStatements);
 
-        block.decl(propertyType, "oldMap", JExpr._this().ref(propertyName));
+        block.decl(propertyType, "oldMap", 
+            JExpr._this().ref(sanitizedPropertyName));
         JClass mapType = codeModel.ref(LinkedHashMap.class);
         JClass typedMapType = mapType.narrow(keyType, valueType);
         block.decl(propertyType, "newMap", JExpr._new(typedMapType));
@@ -281,7 +302,8 @@ class CodeModelMethods
             JExpr.ref("newMap"), "putAll").arg(JExpr.ref("oldMap"));
         block.invoke(JExpr.ref("newMap"), "put")
             .arg(JExpr.ref("key")).arg(JExpr.ref("value"));
-        block.assign(JExpr._this().ref(propertyName), JExpr.ref("newMap"));
+        block.assign(JExpr._this().ref(sanitizedPropertyName), 
+            JExpr.ref("newMap"));
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
@@ -304,20 +326,19 @@ class CodeModelMethods
     /**
      * Add a "remover" for the specified property in the given class, 
      * whose type must be a subtype of "Map"
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @param isRequired Whether the property is required
+     *
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "Map"
      */
-    static JMethod addRemoverForMap(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema, boolean isRequired)
+    static JMethod addRemoverForMap(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        boolean isRequired = propertyInfo.isRequired();
+        
         if (!CodeModels.isSubtypeOf(propertyType, Map.class))
         {
             throw new IllegalArgumentException(
@@ -326,8 +347,11 @@ class CodeModelMethods
         }
         JCodeModel codeModel = definedClass.owner();
 
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         String methodName = 
-            "remove" + StringUtils.capitalize(propertyName);
+            "remove" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
         
@@ -345,7 +369,8 @@ class CodeModelMethods
             nullCheckStatements, codeModel, "key");
         addAllStatements(block, nullCheckStatements);
 
-        block.decl(propertyType, "oldMap", JExpr._this().ref(propertyName));
+        block.decl(propertyType, "oldMap", 
+            JExpr._this().ref(sanitizedPropertyName));
         JClass mapType = codeModel.ref(LinkedHashMap.class);
         JClass typedMapType = mapType.narrow(keyType, valueType);
         block.decl(propertyType, "newMap", JExpr._new(typedMapType));
@@ -369,7 +394,8 @@ class CodeModelMethods
         }
         else
         {
-            block.assign(JExpr._this().ref(propertyName), JExpr.ref("newMap"));
+            block.assign(JExpr._this().ref(sanitizedPropertyName), 
+                JExpr.ref("newMap"));
         }
         
         JDocComment docComment = method.javadoc();
@@ -400,19 +426,18 @@ class CodeModelMethods
     /**
      * Add an "adder" for the specified property in the given class, 
      * whose type must be a subtype of "List"
-     * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
+     *
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "List"
      */
-    static JMethod addAdderForList(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema)
+    static JMethod addAdderForList(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+
         if (!CodeModels.isSubtypeOf(propertyType, List.class))
         {
             throw new IllegalArgumentException(
@@ -421,8 +446,11 @@ class CodeModelMethods
         }
         JCodeModel codeModel = definedClass.owner();
         
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         String methodName = 
-            "add" + StringUtils.capitalize(propertyName);
+            "add" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
         
@@ -439,7 +467,8 @@ class CodeModelMethods
             nullCheckStatements, codeModel, "element");
         addAllStatements(block, nullCheckStatements);
 
-        block.decl(propertyType, "oldList", JExpr._this().ref(propertyName));
+        block.decl(propertyType, "oldList", 
+            JExpr._this().ref(sanitizedPropertyName));
         JClass listType = codeModel.ref(ArrayList.class);
         JClass typedListType = listType.narrow(elementType);
         block.decl(propertyType, "newList", JExpr._new(typedListType));
@@ -450,7 +479,8 @@ class CodeModelMethods
             JExpr.ref("newList"), "addAll").arg(JExpr.ref("oldList"));
         block.invoke(JExpr.ref("newList"), "add")
             .arg(JExpr.ref("element"));
-        block.assign(JExpr._this().ref(propertyName), JExpr.ref("newList"));
+        block.assign(JExpr._this().ref(sanitizedPropertyName), 
+            JExpr.ref("newList"));
         
         JDocComment docComment = method.javadoc();
         StringBuilder sb = new StringBuilder();
@@ -473,19 +503,18 @@ class CodeModelMethods
      * Add a "remover" for the specified property in the given class, 
      * whose type must be a subtype of "List"
      * 
-     * @param definedClass The target class
-     * @param propertyName The property name (will be the field name)
-     * @param propertyType The property type
-     * @param propertySchema The property schema
-     * @param isRequired Whether the property is required
+     * @param propertyInfo The {@link PropertyInfo}
      * @return The adder method
      * @throws IllegalArgumentException If the given property type is not 
      * a subtype of "List"
      */
-    static JMethod addRemoverForList(
-        JDefinedClass definedClass, String propertyName, 
-        JType propertyType, Schema propertySchema, boolean isRequired)
+    static JMethod addRemoverForList(PropertyInfo propertyInfo)
     {
+        JDefinedClass definedClass = propertyInfo.getDefinedClass();
+        String propertyName = propertyInfo.getPropertyName();
+        JType propertyType = propertyInfo.getPropertyType();
+        boolean isRequired = propertyInfo.isRequired();
+        
         if (!CodeModels.isSubtypeOf(propertyType, List.class))
         {
             throw new IllegalArgumentException(
@@ -494,8 +523,11 @@ class CodeModelMethods
         }
         JCodeModel codeModel = definedClass.owner();
         
+        String sanitizedPropertyName = 
+            NameUtils.makeValidJavaIdentifier(propertyName);
+        
         String methodName = 
-            "remove" + StringUtils.capitalize(propertyName);
+            "remove" + StringUtils.capitalize(sanitizedPropertyName);
         JMethod method = definedClass.method(
             JMod.PUBLIC, definedClass.owner().VOID, methodName);
         
@@ -512,7 +544,8 @@ class CodeModelMethods
             nullCheckStatements, codeModel, "element");
         addAllStatements(block, nullCheckStatements);
 
-        block.decl(propertyType, "oldList", JExpr._this().ref(propertyName));
+        block.decl(propertyType, "oldList", 
+            JExpr._this().ref(sanitizedPropertyName));
         JClass listType = codeModel.ref(ArrayList.class);
         JClass typedListType = listType.narrow(elementType);
         block.decl(propertyType, "newList", JExpr._new(typedListType));
@@ -536,7 +569,8 @@ class CodeModelMethods
         }
         else
         {
-            block.assign(JExpr._this().ref(propertyName), JExpr.ref("newList"));
+            block.assign(JExpr._this().ref(sanitizedPropertyName), 
+                JExpr.ref("newList"));
         }
         
         JDocComment docComment = method.javadoc();

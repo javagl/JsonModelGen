@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,22 +45,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 /**
- * A repository that maps URIs to JSON nodes. The repository processes
- * a URI and the JSON node that was parsed from this URI in parallel.
- * During this process, it builds a mapping from URIs to JSON nodes,
- * resolving references, so that multiple equivalent URIs are mapped 
- * to the same node instance. For example:
- * <pre><code>
- * Root URI:
- *     file:/C:/root.json    
- * Root node:
- *     root { "extends" : { "$ref" : "extended.json" } }
- * 
- * After processing, the URIs
- *     file:/C:/root.json#/extends
- *     file:/C:/extends.json
- * will both map to the same node, which was parsed from "extended.json"
- * </code></pre>
+ * A repository that maps URIs to JSON nodes.
  */
 public class NodeRepository
 {
@@ -74,13 +58,8 @@ public class NodeRepository
     /**
      * The debug log level
      */
-    private static final Level level = Level.FINE;
+    private static final Level level = Level.FINEST;
     
-    /**
-     * Logging indentation level 
-     */
-    private static int logIndent = 0;
-
     /**
      * Logging utility method
      * 
@@ -90,16 +69,24 @@ public class NodeRepository
     {
         if (logger.isLoggable(level))
         {
-            String indent = "";
-            for (int i=0; i<logIndent; i++)
-            {
-                indent += "  ";
-            }
-            logger.log(level, indent+s);
+            logger.log(level, s);
         }
     }
     
+    /**
+     * The root URIs
+     */
+    private final List<URI> rootUris;
     
+    /**
+     * The root nodes
+     */
+    private final List<JsonNode> rootNodes;
+
+    /**
+     * The search URIs
+     */
+    private final List<URI> searchUris;
     
     /**
      * The mapping from URIs to JSON nodes
@@ -107,250 +94,233 @@ public class NodeRepository
     private final Map<URI, JsonNode> uriToNode;
     
     /**
-     * The mapping from URIs to canonical URIs. This can be imagined
-     * as the mapping from URIs with fragments to URIs without fragments
-     * (if they exist). 
+     * The mapping from nodes to full URIs
      */
-    private final Map<URI, URI> uriToCanonicalUri;
+    private final Map<JsonNode, URI> nodeToFullUri;
     
     /**
-     * The root URI
+     * Create a new repository
      */
-    private final URI rootUri;
-    
-    /**
-     * The root node
-     */
-    private final JsonNode rootNode;
-    
-    /**
-     * Create a new repository by parsing the given URI
-     * 
-     * @param rootUri The root URI
-     */
-    public NodeRepository(URI rootUri)
+    public NodeRepository()
     {
-        rootUri = rootUri.normalize();
-        this.rootUri = rootUri;
-        this.rootNode = JsonUtils.readNodeOptional(rootUri);
+        this.rootUris = new ArrayList<URI>();
+        this.rootNodes = new ArrayList<JsonNode>();
+        this.searchUris = new ArrayList<URI>();
+        this.uriToNode = new LinkedHashMap<URI, JsonNode>();
+        this.nodeToFullUri = new LinkedHashMap<JsonNode, URI>();
+    }
+    
+    /**
+     * Add the given URI to resolve relative URIs against while trying to
+     * find a node
+     * 
+     * @param searchUri The search URI
+     */
+    public void addSearchUri(URI searchUri)
+    {
+        searchUris.add(searchUri);
+    }
+    
+    /**
+     * Add the given root RUI
+     * 
+     * @param newRootUri The root URI
+     */
+    public void addRootUri(URI newRootUri)
+    {
+        URI rootUri = newRootUri.normalize();
+        JsonNode rootNode = JsonUtils.readNodeOptional(rootUri);
         if (rootNode == null)
         {
             throw new JsonException("Could not read node from "+rootUri); 
         }
-        this.uriToNode = new LinkedHashMap<URI, JsonNode>();
-        this.uriToCanonicalUri = new LinkedHashMap<URI, URI>();
-
-        generateNodes(rootUri, rootNode);
+        rootUris.add(rootUri);
+        rootNodes.add(rootNode);
+        uriToNode.put(rootUri, rootNode);
+        nodeToFullUri.put(rootNode, rootUri);
+        searchUris.add(rootUri);
     }
     
     /**
-     * Generate the nodes that start at the given URI, with the given node
-     * that was parsed from the given URI
+     * Resolve the JSON node for the given input URI
      * 
-     * @param uri The current URI
-     * @param node The current node
+     * @param inputUri The input URI
+     * @return The JSON node
      */
-    private void generateNodes(URI uri, JsonNode node)
+    public JsonNode resolveNode(URI inputUri)
     {
-        uri = uri.normalize();
-        
-        logger.info("Generate nodes      for "+uri);
-        
-        if (uriToNode.containsKey(uri)) 
+        log("resolveNode for " + inputUri);
+
+        URI uri = inputUri.normalize();
+        JsonNode node = uriToNode.get(uri);
+        if (node != null)
         {
-            logger.info("Node already known for  "+uri);
-            return;
+            //logger.fine("Using known node for " + uri + ": " + node);
+            return node;
         }
         
-        log("generateNodes");
-        log("    uri "+uri);
-        log("    node "+node);
+        ResolveResult resolveResult = resolveBaseNode(uri);
+        if (resolveResult == null)
+        {
+            return null;
+        }
+        JsonNode baseNode = resolveResult.node;        
+        JsonNode resultNode = resolveFragment(
+            baseNode, inputUri.getFragment());
         
-        put(uri, node);
-        
-        logIndent++;
-        generateSubNodes(uri, node);
-        logIndent--;
-        
-        logger.info("Generate nodes DONE for "+uri);
+        put(uri, resultNode, resolveResult.fullUri);;
+        return resultNode;
     }
     
     /**
-     * Generate the sub-nodes ... TODO real comment
-     * 
-     * @param uri The current URI
-     * @param node The current node
+     * Return structure for {@link NodeRepository#resolveBaseNode(URI)}
      */
-    private void generateSubNodes(URI uri, JsonNode node)
+    static class ResolveResult
     {
-        log("generateSubNodes of "+uri);
+        /**
+         * The node
+         */
+        JsonNode node;
         
-        if (node.isArray())
-        {
-            for (int i=0; i<node.size(); i++)
-            {
-                JsonNode arrayItem = node.get(i);
-
-                log("generateSubNodes for array item "+arrayItem);
-                
-                URI itemUri = URIs.appendToFragment(uri, String.valueOf(i));
-                
-                logIndent++;
-                generateNodes(itemUri, arrayItem);
-                logIndent--;
-            }
-        }
-        else
-        {
-            Iterator<Entry<String, JsonNode>> iterator = node.fields();
-            while (iterator.hasNext())
-            {
-                Entry<String, JsonNode> field = iterator.next();
-                String fieldName = field.getKey();
-                JsonNode fieldValue = field.getValue();
-                
-                log("generateSubNodes field '"+fieldName+"' value "+fieldValue);
-                
-                if (fieldName.equals("$ref"))
-                {
-                    String refString = fieldValue.asText();
-                    processRef(uri, node, refString);
-                }
-                
-                uri = getCanonicalUri(uri);
-                URI propertyUri = URIs.appendToFragment(uri, fieldName);
-                
-                logIndent++;
-                generateNodes(propertyUri, fieldValue);
-                logIndent--;
-            }
-        }
+        /**
+         * The full URI
+         */
+        URI fullUri;
     }
+    
+    /**
+     * Resolve the given input URI against a node. If it is absolute,
+     * it will be read directly. Otherwise, it will be attempted to
+     * resolve it against the search URIs.
+     * 
+     * If the node cannot be resolved, a warning is printed and
+     * <code>null</code> is returned.
+     * 
+     * @param inputUri The input URI
+     * @return The resolved node and its full URI
+     */
+    private ResolveResult resolveBaseNode(URI inputUri) 
+    {
+        URI uri = inputUri.normalize();
+        if (uri.isAbsolute())
+        {
+            JsonNode node = JsonUtils.readNodeOptional(uri);
+            if (node != null)
+            {
+                ResolveResult resolveResult = new ResolveResult();
+                resolveResult.node = node;
+                resolveResult.fullUri = uri;
+                return resolveResult;
+            }
+        }
+        for (URI searchUri : searchUris)
+        {
+            URI resolved = searchUri.resolve(uri);
+            JsonNode node = JsonUtils.readNodeOptional(resolved);
+            if (node != null)
+            {
+                logger.info("Resolved " + uri + " against search URI "
+                    + searchUri + " to " + resolved);
+                
+                ResolveResult resolveResult = new ResolveResult();
+                resolveResult.node = node;
+                resolveResult.fullUri = resolved;
+                return resolveResult;
+            }
+        }
+        logger.warning("Could not read node from URI " + uri);
+        return null;
+    }
+    
 
     /**
-     * Process a "$ref" (reference) that was parsed from a JSON field
+     * Resolves a given fragment string against a given node.
      * 
-     * @param uri The current URI
-     * @param node The current node
-     * @param refString The string value of the "$ref" field 
+     * For a node like <code>{ "foo": { "bar" : { "inner": ... } } }</code>
+     * and a fragment <code>"/foo/bar"</code>, this will return the 
+     * node <code>{ "inner": ... }</code>.
+     * 
+     * If the fragment cannot be resolved, then <code>null</code> is 
+     * returned.
+     * 
+     * @param node The node
+     * @param fragment The fragment
+     * @return The resolved fragment node
      */
-    private void processRef(URI uri, JsonNode node, String refString)
+    private static JsonNode resolveFragment(JsonNode node, String fragment)
     {
-        if (refString.equals("#"))
+        if (fragment == null)
         {
-            URI refUri = uri.resolve(refString).normalize();
-            System.out.println("Self-reference "+refUri+" to "+rootNode);
-            put(refUri, rootNode);
+            return node;
         }
-        else
+        String f = fragment;
+        if (f.startsWith("/")) 
         {
-            URI refUri = uri.resolve(refString).normalize();
-            if (!containsUri(refUri))
+            f = f.substring(1);
+        }
+        String tokens[] = f.split("/");
+        JsonNode current = node;
+        for (String token : tokens)
+        {
+            if (current.isArray())
             {
-                JsonNode refNode = JsonUtils.readNodeOptional(refUri);
-                if (refNode != null)
+                int index = 0;
+                try
                 {
-                    log("generateSubNodes");
-                    log("   uri          "+uri);
-                    log("   canonicalUri "+refUri);
-
-                    uriToCanonicalUri.put(uri, refUri);
-
-                    logIndent++;
-                    generateNodes(uri, refNode);
-                    logIndent--;
-                    logIndent++;
-                    generateNodes(refUri, refNode);
-                    logIndent--;
+                    index = Integer.parseInt(token);                    
                 }
-                else
+                catch (NumberFormatException e)
                 {
-                    log("WARNING: generateSubNodes: " + 
-                        "No node found for refUri "+refUri);
-                    log("WARNING:    uri          "+uri);
-                    
-                    logger.warning("No node found for refUri "+refUri);
+                    logger.severe("Expected index, found "+token);
+                    return null;
                 }
+                current = current.get(index);
             }
             else
             {
-                log("generateSubNodes with known ref");
-                log("   uri          "+uri);
-                log("   canonicalUri "+refUri);
-
-                JsonNode refNode = get(refUri);
-                uriToCanonicalUri.put(uri, refUri);
-                logIndent++;
-                generateNodes(uri, refNode);
-                logIndent--;
+                current = current.get(token);
             }
-        }
-    }
-
-    /**
-     * Returns the canonical URI for the given URI. If there is a basic
-     * URI (for example, one without fragments) that points to the same
-     * node as the given URI, then this basic URI is returned. Otherwise,
-     * the given URI is returned as it is
-     * 
-     * @param uri The URI
-     * @return The canonical URI
-     */
-    public URI getCanonicalUri(URI uri)
-    {
-        uri = uri.normalize();
-        URI result = uriToCanonicalUri.get(uri);
-        if (result == null)
-        {
-            return uri;
-        }
-        return result;
-    }
-    
-    /**
-     * Computes an unmodifiable map from nodes to the (unmodifiable) lists 
-     * of URIs that are mapped to the given node
-     * 
-     * @return The map
-     */
-    public Map<JsonNode, List<URI>> computeNodeToUrisMapping()
-    {
-        Map<JsonNode, List<URI>> nodeToUris = 
-            new LinkedHashMap<JsonNode, List<URI>>();
-        for (URI uri : getUris())
-        {
-            JsonNode node = get(uri);
-            List<URI> uris = nodeToUris.get(node);
-            if (uris == null)
+            if (current == null)
             {
-                uris = new ArrayList<URI>();
-                nodeToUris.put(node, uris);
+                logger.severe("Could not resolve fragment " + fragment
+                    + " against " + node);
+                return null;
             }
-            uris.add(uri);
         }
-        return Maps.deepUnmodifiable(nodeToUris);
+        return current;
+    }
+
+    /**
+     * Returns the full URI that the given node was obtained from
+     * 
+     * @param node The node
+     * @return The full URI
+     */
+    public URI getFullUri(JsonNode node)
+    {
+        return nodeToFullUri.get(node);
     }
     
-    
     /**
-     * Returns the root node that was parsed from the URI that was 
-     * given in the constructor
+     * Returns the root nodes that have been parsed from the URIs that 
+     * have been given to {@link #addRootUri(URI)}
      * 
-     * @return The root node
+     * @return The root nodes
      */
-    public JsonNode getRootNode()
+    public List<JsonNode> getRootNodes()
     {
-        return rootNode;
+        return Collections.unmodifiableList(rootNodes);
     }
     
     /**
-     * Returns the root URI that was given in the constructor
+     * Returns the root URIs that have been given to 
+     * {@link #addRootUri(URI)}
      * 
-     * @return The root URI
+     * @return The root URIs
      */
-    public URI getRootUri()
+    public List<URI> getRootUris()
     {
-        return rootUri;
+        return Collections.unmodifiableList(rootUris);
     }
     
     /**
@@ -358,10 +328,16 @@ public class NodeRepository
      * 
      * @param uri The URI
      * @param node The node
+     * @param fullUri The full URI
      */
-    void put(URI uri, JsonNode node)
+    private void put(URI uri, JsonNode node, URI fullUri)
     {
+        log("Storing node");
+        log("    uri     " + uri);
+        log("    node    " + node);
+        log("    fullUri " + fullUri);
         uriToNode.put(uri, node);
+        nodeToFullUri.put(node, fullUri);
     }
     
     /**
@@ -384,18 +360,6 @@ public class NodeRepository
     public Set<URI> getUris()
     {
         return Collections.unmodifiableSet(uriToNode.keySet());
-    }
-    
-    /**
-     * Returns the node that was stored for the given URI, or <code>null</code>
-     * if no such node can be found
-     * 
-     * @param uri The URI
-     * @return The node
-     */
-    public JsonNode get(URI uri)
-    {
-        return uriToNode.get(uri);
     }
     
     
@@ -442,5 +406,28 @@ public class NodeRepository
         return sb.toString();
     }
     
-    
+    /**
+     * Computes an unmodifiable map from nodes to the (unmodifiable) lists 
+     * of URIs that are mapped to the given node
+     * 
+     * @return The map
+     */
+    public Map<JsonNode, List<URI>> computeNodeToUrisMapping()
+    {
+        Map<JsonNode, List<URI>> nodeToUris = 
+            new LinkedHashMap<JsonNode, List<URI>>();
+        for (URI uri : getUris())
+        {
+            JsonNode node = resolveNode(uri);
+            List<URI> uris = nodeToUris.get(node);
+            if (uris == null)
+            {
+                uris = new ArrayList<URI>();
+                nodeToUris.put(node, uris);
+            }
+            uris.add(uri);
+        }
+        return Maps.deepUnmodifiable(nodeToUris);
+    }
+  
 }

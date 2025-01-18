@@ -27,8 +27,10 @@
 package de.javagl.jsonmodelgen.json.schema.codemodel;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -130,40 +132,132 @@ public class ClassNameUtils
     private static String deriveClassName(URI uri)
     {
         String uriString = uri.toString();
+        String className = null;
         
-        int lastGlobalHashIndex = uriString.lastIndexOf("#");
-        int lastSlashIndex = 0;
-        if (lastGlobalHashIndex >= 0)
+        // If the URI is part of JSON Schema "definitions", then just
+        // derive the class name from the respective name
+        if (uriString.contains("#/definitions"))
         {
-            lastSlashIndex = uriString.lastIndexOf('/', lastGlobalHashIndex-1);
+            int definitionsIndex = uriString.indexOf("#/definitions");
+            String definitionName = uriString.substring(definitionsIndex + 13);
+            className = StringUtils.capitalize(definitionName);
         }
         else
         {
-            lastSlashIndex = uriString.lastIndexOf('/');
-        }
-        String fileNameAndFragment = uriString.substring(lastSlashIndex+1);
+            String fileName = uri.toString();
+            int fragmentIndex = uriString.indexOf('#');
+            if (fragmentIndex != -1)
+            {
+                fileName = fileName.substring(0, fragmentIndex);
+            }
+            int lastSlashIndex = fileName.lastIndexOf('/');
+            if (lastSlashIndex != -1)
+            {
+                fileName = fileName.substring(lastSlashIndex + 1);
+            }
+            fileName = stripSuffixIfPresent(fileName, ".json");
+            fileName = stripSuffixIfPresent(fileName, ".schema");
+            className = StringUtils.capitalize(fileName);
 
-        String fragment = null;
-        String fileName = fileNameAndFragment;
-        int lastHashIndex = fileNameAndFragment.lastIndexOf("#");
-        if (lastHashIndex != -1)
-        {
-            fileName = fileNameAndFragment.substring(0, lastHashIndex);
-            fragment = fileNameAndFragment.substring(
-                lastHashIndex+2, fileNameAndFragment.length());
-        }
-        fileName = stripSuffixIfPresent(fileName, ".json");
-        fileName = stripSuffixIfPresent(fileName, ".schema");
-        
-        String className = StringUtils.capitalize(fileName);
-        
-        if (fragment != null)
-        {
-            className += StringUtils.capitalize(fragment);
+            String fragment = uri.getFragment();
+            if (fragment != null)
+            {
+                className += fragment;
+            }
         }
         
         className = cleanUpClassName(className);
+        className = beautifyClassName(className);
         return className;
+    }
+    
+    /**
+     * Beautify the given class name. The details are not specified, but...
+     * it may, for example, change names like 
+     * <code>"NodeEXT_example_extension"</code> to
+     * <code>"NodeExampleExtension"</code>...
+     * 
+     * @param className The class name
+     * @return The beautified class name
+     */
+    private static String beautifyClassName(String className)
+    {
+        String preparedClassName = className;
+        List<String> knownPrefixes = Arrays.asList(
+            "KHR",
+            "EXT",
+            "3DTILES",
+            "ADOBE",
+            "AGI",
+            "AGT",
+            "ALCM",
+            "ALI",
+            "AMZN",
+            "ANIMECH",
+            "ASOBO",
+            "AVR",
+            "BLENDER",
+            "CAPTURE",
+            "CESIUM",
+            "CITRUS",
+            "CLO",
+            "CVTOOLS",
+            "EPIC",
+            "FB",
+            "FOXIT",
+            "GOOGLE",
+            "GRIFFEL",
+            "KDAB",
+            "LLQ",
+            "MAXAR",
+            "MESHOPT",
+            "MOZ",
+            "MPEG",
+            "MSFT",
+            "NV",
+            "OFT",
+            "OMI",
+            "OWLII",
+            "PANDA3D",
+            "POLUTROPON",
+            "PTC",
+            "S8S",
+            "SEIN",
+            "SI",
+            "SKFB",
+            "SKYLINE",
+            "SPECTRUM",
+            "TRYON",
+            "UX3D",
+            "VRMC",
+            "WEB3D"           
+        );
+        for (String prefix : knownPrefixes)
+        {
+            preparedClassName = preparedClassName.replaceAll(prefix + "_", "_");
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        boolean capitalizeNext = false;
+        for (int i=0; i<preparedClassName.length(); i++)
+        {
+            char c = preparedClassName.charAt(i);
+            if (c != '_')
+            {
+                if (capitalizeNext)
+                {
+                    c = Character.toUpperCase(c);
+                }
+                sb.append(c);
+                capitalizeNext = false;
+            }
+            else
+            {
+                capitalizeNext = true;
+            }
+        }
+        return sb.toString();
+        
     }
     
     /**

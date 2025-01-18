@@ -86,7 +86,8 @@ public class SchemaUtils
             "type="+schema.getClass().getSimpleName()+", " +
             "title="+schema.getTitle()+", " +
             "id="+schema.getId()+", " +
-            "description="+schema.getDescription()+"]";
+            "description="+schema.getDescription()+", "+
+            "uri="+schema.getUri()+"]";
     }
 
     /**
@@ -121,6 +122,8 @@ public class SchemaUtils
         append(sb, "default", schema.getDefaultString(), ",\n");
         append(sb, "type", schema.getTypeStrings(), ",\n");
         append(sb, "enum", schema.getEnumStrings(), ",\n");
+        append(sb, "$ref",
+            createShortSchemaDebugString(schema.getRef()), ",\n");
         append(sb, "allOf",
             createShortSchemaDebugString(schema.getAllOf()), ",\n");
         append(sb, "anyOf",

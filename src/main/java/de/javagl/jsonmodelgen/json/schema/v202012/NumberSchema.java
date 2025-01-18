@@ -173,7 +173,7 @@ public class NumberSchema extends Schema
     }
 
     /**
-     * See {@link #isExclusiveMinimum()}
+     * See {@link #getExclusiveMinimum()}
      *
      * @param exclusiveMinimum The value
      */

@@ -29,10 +29,11 @@ package de.javagl.jsonmodelgen;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
-import java.util.Locale;
+import java.util.List;
 import java.util.logging.Logger;
 
 import de.javagl.jsonmodelgen.json.NodeRepository;
+import de.javagl.jsonmodelgen.json.URIs;
 import de.javagl.jsonmodelgen.json.schema.v202012.SchemaGenerator;
 import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGenerator;
 import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGeneratorConfig;
@@ -49,95 +50,67 @@ public class JsonModelGen
         Logger.getLogger(JsonModelGen.class.getName());
     
     /**
-     * Entry point of the application
+     * Create a {@link ClassGeneratorConfig} with some unspecified default
+     * settings, mainly for generating the glTF- and 3D Tiles classes.
      * 
-     * @param args Not used
-     * @throws Exception If an error occurs
+     * @return The {@link ClassGeneratorConfig}
      */
-    public static void main(String[] args) throws Exception
-    {
-        LoggerUtil.initLogging();
-        Locale.setDefault(Locale.ENGLISH);
-        
-        generateGlTF();
-        //generateTiles();
-    }
-    
-    /**
-     * Performs the actual generation
-     * 
-     * @throws Exception If an error occurs
-     */
-    private static void generateGlTF() throws Exception
-    {
-        String urlString = "https://raw.githubusercontent.com/KhronosGroup/"
-            + "glTF/master/specification/2.0/schema/glTF.schema.json";
-        String headerCode = createHeaderCode("glTF JSON model"); 
-        String packageName = "de.javagl.jgltf.impl.v2";
-        
-        URI rootUri = new URI(urlString);
-        File outputDirectory = new File("./data/output/");
-        generate(rootUri, packageName, headerCode, outputDirectory);
-    }    
-    
-    //--------------------------------------------------------------------------
-    // Experimental 3D Tiles generation
-    /**
-     * Performs the actual generation
-     * 
-     * @throws Exception If an error occurs
-     */
-    private static void generateTiles() throws Exception
-    {
-        generateTiles("tileset.schema.json", ".impl");
-        //generateTiles("i3dm.featureTable.schema.json", ".impl");
-        //generateTiles("pnts.featureTable.schema.json", ".impl");
-    }
-    
-    /**
-     * Performs the actual generation
-     * 
-     * @throws Exception If an error occurs
-     */
-    private static void generateTiles(
-        String fileName, String packageNameSuffixStartingWithDot) 
-            throws Exception
-    {
-        String urlString = "https://raw.githubusercontent.com/CesiumGS/"
-            + "3d-tiles/master/specification/schema/" + fileName;
-        String headerCode = createHeaderCode("3D Tiles JSON model"); 
-        String packageName = 
-            "de.javagl.j3dtiles" + packageNameSuffixStartingWithDot;
-        
-        URI rootUri = new URI(urlString);
-        File outputDirectory = new File("./data/output/");
-        generate(rootUri, packageName, headerCode, outputDirectory);
-    }
-    //--------------------------------------------------------------------------
-    
-    private static ClassGeneratorConfig createGltfConfig()
+    public static ClassGeneratorConfig createDefaultClassGeneratorConfig()
     {
         ClassGeneratorConfig config = new ClassGeneratorConfig();
         config.set(ClassGeneratorConfig.CREATE_ADDERS_AND_REMOVERS, true);
         config.set(ClassGeneratorConfig.CREATE_GETTERS_WITH_DEFAULT, true);
+        
+        config.addTypeOverride(
+            ".*accessor.schema.json#/properties/min", Number[].class);
+        config.addTypeOverride(
+            ".*accessor.schema.json#/properties/max", Number[].class);
+        
+        config.setSkippingValidation(
+            "de.javagl.jgltf.impl.v2.Image#mimeType", true);
+        
+        // TODO This is only for 3DTILES_Metadata:
+        config.addClassNameOverride("Class", "MetadataClass");
+        config.addClassNameOverride("Enum", "MetadataEnum");
+
+        // TODO This is only for 3DTILES_batch_table_hierarchy:
+        config.addClassNameOverride("BatchTableHierarchyPropertiesClassesItems",
+            "BatchTableHierarchyClass");
+        
         return config;
     }
     
     /**
-     * Generate the classes for the schema with the given root element,
-     * using the given package name, in the given output directory
+     * Generate the classes for the schema with the given inputs,
+     * in the given output directory
      * 
-     * @param rootUri The root JSON schema URI
-     * @param packageName The package name
-     * @param headerCode The header code for each file
+     * @param generatorInputs The {@link GeneratorInput} objects
      * @param outputDirectory The output directory
+     * @param config The {@link ClassGeneratorConfig}
      * @throws IOException If an IO error occurs
      */
-    private static void generate(URI rootUri, String packageName, 
-        String headerCode, File outputDirectory) throws IOException
+    static void generate(ClassGeneratorConfig config,
+        List<GeneratorInput> generatorInputs, File outputDirectory) 
+            throws IOException
     {
         logger.info("Creating NodeRepository");
-        NodeRepository nodeRepository = new NodeRepository(rootUri);
+        NodeRepository nodeRepository = new NodeRepository();
+        for (GeneratorInput generatorInput : generatorInputs)
+        {
+            String uriString = generatorInput.getUriString();
+            URI uri = URIs.create(uriString);
+            logger.info("  Populating NodeRepository with root URI " + uri);
+
+            List<String> searchUriStrings = generatorInput.getSearchUriStrings();
+            for (String searchUriString : searchUriStrings)
+            {
+                nodeRepository.addSearchUri(
+                    URIs.create(searchUriString));
+            }
+            nodeRepository.addRootUri(
+                URIs.create(uriString));
+            
+        }
         logger.info("Creating NodeRepository DONE");
         //System.out.println(nodeRepository.createDebugString());
         
@@ -147,8 +120,8 @@ public class JsonModelGen
         
         logger.info("Creating ClassGenerator");
         ClassGenerator classGenerator = 
-            new ClassGenerator(createGltfConfig(), 
-                schemaGenerator, packageName, headerCode);
+            new ClassGenerator(config, 
+                schemaGenerator, generatorInputs);
         logger.info("Creating ClassGenerator DONE");
         
         logger.info("Creating classes");
@@ -163,7 +136,7 @@ public class JsonModelGen
      * @param headerTitle The header title
      * @return The header code
      */
-    private static String createHeaderCode(String headerTitle)
+    static String createHeaderCode(String headerTitle)
     {
         String headerCode = 
             "/*\n" +
