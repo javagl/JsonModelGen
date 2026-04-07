@@ -30,11 +30,13 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import de.javagl.jsonmodelgen.json.NodeRepository;
 import de.javagl.jsonmodelgen.json.URIs;
 import de.javagl.jsonmodelgen.json.schema.v202012.SchemaGenerator;
+import de.javagl.jsonmodelgen.json.schema.v202012.SchemaUtils;
 import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGenerator;
 import de.javagl.jsonmodelgen.json.schema.v202012.codemodel.ClassGeneratorConfig;
 
@@ -65,9 +67,12 @@ public class JsonModelGen
             ".*accessor.schema.json#/properties/min", Number[].class);
         config.addTypeOverride(
             ".*accessor.schema.json#/properties/max", Number[].class);
-        
-        config.setSkippingValidation(
-            "de.javagl.jgltf.impl.v2.Image#mimeType", true);
+
+        // Skip validation for all enum types by default
+        config.setSkippingValidation((n, s) ->
+        {
+            return SchemaUtils.isEnum(s);
+        });
         
         // TODO This is only for 3DTILES_Metadata:
         config.addClassNameOverride("Class", "MetadataClass");

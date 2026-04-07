@@ -874,7 +874,7 @@ public class ClassGenerator
             String fullPropertyName = 
                 fullContainingClassName + "#" + propertyName;
             boolean performValidation = 
-                !config.isSkippingValidation(fullPropertyName);
+                !config.isSkippingValidation(fullPropertyName, propertySchema);
             
             addField(propertyInfo);
             CodeModelMethods.addSetter(propertyInfo, performValidation);
@@ -903,7 +903,7 @@ public class ClassGenerator
             }
         }
     }
-
+    
     /**
      * Create a field for the specified property in the given class
      * 

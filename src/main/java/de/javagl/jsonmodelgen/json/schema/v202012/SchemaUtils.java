@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * Utility methods related to {@link Schema} instances, mainly intended
@@ -300,7 +301,37 @@ public class SchemaUtils
         }
         return required.contains(propertyName);
     }
-    
+
+    /**
+     * Returns whether the property with the given schema is considered
+     * to be an enum type, either via the enum strings, or via the
+     * "anyOf" types that it is inheriting from
+     * 
+     * @param propertySchema The property schema
+     * @return Whether the property is an enum
+     */
+    public static boolean isEnum(Schema schema)
+    {
+        Set<String> enumStrings = schema.getEnumStrings();
+        if (enumStrings != null && !enumStrings.isEmpty())
+        {
+            return true;
+        }
+        List<Schema> anyOf = schema.getAnyOf();
+        if (anyOf == null)
+        {
+            return false;
+        }
+        for (Schema anyOfSchema : anyOf)
+        {
+            Set<String> subEnumStrings = anyOfSchema.getEnumStrings();
+            if (subEnumStrings != null && !subEnumStrings.isEmpty())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Private constructor to prevent instantiation

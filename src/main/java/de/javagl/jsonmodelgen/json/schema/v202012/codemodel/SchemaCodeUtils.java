@@ -120,7 +120,6 @@ class SchemaCodeUtils
         return nonObjectSchema;
     }
     
-    
     /**
      * Returns the list containing the (unique) 
      * {@link Schema#getEnumStrings() enum strings} that appear in 
@@ -148,8 +147,6 @@ class SchemaCodeUtils
         }
         return new ArrayList<String>(allEnumStrings);
     }
-    
-    
     
     /**
      * Private constructor to prevent instantiation

@@ -28,9 +28,13 @@ package de.javagl.jsonmodelgen.json.schema.v202012.codemodel;
 
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.BiPredicate;
+
+import de.javagl.jsonmodelgen.json.schema.v202012.Schema;
 
 /**
  * A class storing different configuration flags that determine the structure
@@ -84,11 +88,11 @@ public class ClassGeneratorConfig
     private final Map<String, String> classNameOverrides;
     
     /**
-     * The set of full property names for which validation should be skipped.
+     * The set of conditions for skipping the validation of a property.
      * 
      * @see #setSkippingValidation(String, boolean)
      */
-    private final Set<String> skippingValidationFullPropertyNames;
+    private final Set<BiPredicate<? super String, ? super Schema>> skippingValidationConditions;
     
     /**
      * The default number type (Float or Double)
@@ -103,7 +107,8 @@ public class ClassGeneratorConfig
         this.flags = new HashSet<String>();
         this.typeOverrides = new LinkedHashMap<String, Class<?>>();
         this.classNameOverrides = new LinkedHashMap<String, String>();
-        this.skippingValidationFullPropertyNames = new HashSet<String>();
+        this.skippingValidationConditions = 
+        	new LinkedHashSet<BiPredicate<? super String, ? super Schema>>();
         this.numberType = Float.class;
     }
     
@@ -225,12 +230,33 @@ public class ClassGeneratorConfig
     public boolean setSkippingValidation(
         String fullPropertyName, boolean skipping)
     {
-        if (skipping)
-        {
-            return skippingValidationFullPropertyNames.add(fullPropertyName);
-        }
-        return skippingValidationFullPropertyNames.remove(fullPropertyName);
-        
+    	return setSkippingValidation((n, s) -> 
+    	{
+    		if (n.equals(fullPropertyName)) 
+    		{
+    			return skipping;
+    		}
+    		return false;
+    	});
+    }
+
+    /**
+     * Set whether validation should be skipped for a certain property.
+     * 
+     * The full property name is given as the fully qualified class name,
+     * combined with <code>#</code> and the property name. For example,
+     * <code>de.javagl.jgltf.impl.v2.Image#mimeType</code>.
+     * 
+     * Guess why I used this as an example.
+     * 
+     * @param fullPropertyName The full property name
+     * @param skipping Whether validation should be skipped
+     * @return The value that the flag had previously
+     */
+    public boolean setSkippingValidation(
+        BiPredicate<? super String, ? super Schema> condition)
+    {
+      	return skippingValidationConditions.add(condition);
     }
 
     /**
@@ -240,11 +266,21 @@ public class ClassGeneratorConfig
      * @see #setSkippingValidation(String, boolean)
      * 
      * @param fullPropertyName The full property name
+     * @param schema The schema for the property
      * @return Whether validation should be skipped
      */
-    public boolean isSkippingValidation(String fullPropertyName)
+    public boolean isSkippingValidation(String fullPropertyName, Schema schema)
     {
-        return skippingValidationFullPropertyNames.contains(fullPropertyName);
+    	for (BiPredicate<? super String, ? super Schema> condition : 
+    		skippingValidationConditions)
+    	{
+    		boolean skip = condition.test(fullPropertyName, schema);
+    		if (skip) 
+    		{
+    			return true;
+    		}
+    	}
+    	return false;
     }
     
     /**

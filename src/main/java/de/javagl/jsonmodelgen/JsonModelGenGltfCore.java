@@ -59,17 +59,18 @@ public class JsonModelGenGltfCore
      */
     private static void generateGlTF() throws IOException
     {
+        String version = "1";
         String baseUrlString = 
             "https://raw.githubusercontent.com/KhronosGroup/glTF/main/";
         
         GeneratorInput coreGeneratorInput = new GeneratorInput();
-        coreGeneratorInput.setUriString(baseUrlString 
-            + "/specification/2.0/schema/glTF.schema.json");
+        coreGeneratorInput.setUriString(baseUrlString + "/specification/"
+            + version + ".0/schema/glTF.schema.json");
         
         coreGeneratorInput.setHeaderCode(
             JsonModelGen.createHeaderCode("glTF JSON model")); 
         coreGeneratorInput.setPackageName(
-            "de.javagl.jgltf.impl.v2");
+            "de.javagl.jgltf.impl.v" + version);
         
         List<GeneratorInput> generatorInputs = new ArrayList<GeneratorInput>();
         generatorInputs.add(coreGeneratorInput);
@@ -77,6 +78,7 @@ public class JsonModelGenGltfCore
         outputDirectory.mkdirs();
         ClassGeneratorConfig config = 
             JsonModelGen.createDefaultClassGeneratorConfig();
+        config.setNumberType(Double.class);
         JsonModelGen.generate(config, generatorInputs, outputDirectory);
     }
 }
